@@ -3,7 +3,7 @@
 [![CI](https://github.com/JasonTM17/Security_Lab_Study/actions/workflows/ci.yml/badge.svg)](https://github.com/JasonTM17/Security_Lab_Study/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-%E2%89%A522.5-339933?logo=node.js&logoColor=white)](package.json)
-[![Tests](https://img.shields.io/badge/tests-148%20unit%20%C2%B7%2064%20e2e-brightgreen)](#kết-quả-đã-được-xác-minh-chạy-thật-trên-máy-này)
+[![Tests](https://img.shields.io/badge/tests-149%20unit%20%C2%B7%2064%20e2e-brightgreen)](#kết-quả-đã-được-xác-minh-chạy-thật-trên-máy-này)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 > ⚠️ **Công cụ này KHÔNG phải và KHÔNG THỂ là công cụ DDoS tấn công website trên
@@ -34,7 +34,7 @@
 | 📄 **Báo cáo** | `src/modules/report.js` | Xuất `.md` + `.html` vào `reports/` (crawl xuất `.md` + `.json`) |
 | 📚 **Tài liệu & 17 bài thực hành** | `docs/`, `exercises/` | Pháp lý → kiến trúc → DoS/DDoS → cheat sheet → scraping → E2E → **bản đồ OWASP Top 10** → detection engineering → case study thực chiến → bài tập có tiêu chí hoàn thành |
 | 🔑 **Lời giải & solver đa ngôn ngữ** | `solutions/` | Writeup 10 CTF (recon → root cause → exploit → vá), solver **chạy được** bằng Node.js/Python/Bash/PowerShell (verify 10/10 · 265đ), answer key 17 bài tập — cùng guard `--i-own-this-target` |
-| ✅ **148 unit/integration tests** | `tests/` | Bao gồm test GUARD chặn public + test đối chứng 20 lỗ hổng vuln/hardened |
+| ✅ **149 unit/integration tests** | `tests/` | Bao gồm test GUARD chặn public + test đối chứng 20 lỗ hổng vuln/hardened |
 | ⚙️ **CI workflow** | `.github/workflows/ci.yml` | GitHub Actions: unit + E2E trên Node 22/24 × Ubuntu + Windows |
 
 Không có dependency ngoài nào — chỉ dùng thư viện chuẩn Node ≥ 22.5
@@ -43,7 +43,7 @@ Không có dependency ngoài nào — chỉ dùng thư viện chuẩn Node ≥ 2
 ## Bắt đầu trong 60 giây
 
 ```bash
-npm test                       # 148/148 pass (unit + integration)
+npm test                       # 149/149 pass (unit + integration)
 npm run e2e                    # 64/64 E2E HTTP — tự khởi động 3 server, tự đối chứng vuln/hardened
 npm run serve                  # lab CỐ Ý DỄ TỔN THƯƠNG → http://127.0.0.1:3000
 # mở http://127.0.0.1:3000/lab — 🔴 Red Team: chọn bài (20 bài · lọc · tiến độ · nộp cờ CTF)
@@ -166,7 +166,7 @@ khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; t�
 │   ├── modules/          # recon, vulnscan, loadtest, flowload, slowloris, scraper, detect, challenge, codec, jwttool, report, http
 │   ├── defense/          # ratelimiter (token bucket), headers, csrf
 │   └── utils/color.js
-├── tests/                # 148 test + e2e.mjs 64 check
+├── tests/                # 149 test + e2e.mjs 64 check
 ├── solutions/            # 🔑 writeup 10 CTF + solver Node/Py/Bash/PS1 + answer key 17 bài
 ├── docs/                 # pháp lý · kiến trúc · DoS/DDoS · cheat sheet · scraping · OWASP map · detection eng · case study · instructor guide · images/
 ├── exercises/            # 17 bài thực hành có tiêu chí hoàn thành
@@ -176,7 +176,7 @@ khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; t�
 
 ## Kết quả đã được xác minh (chạy thật trên máy này)
 
-- `node --test` → **148/148 pass** (bao gồm "chặn mục tiêu public kể cả khi có cờ" + test đối chứng 20 lỗ hổng).
+- `node --test` → **149/149 pass** (bao gồm "chặn mục tiêu public kể cả khi có cờ" + test đối chứng 20 lỗ hổng).
 - `npm run e2e` → **64/64 PASS** — đối chứng cặp vuln/hardened cho cả LAB-09..20 mới (nhóm H).
 - Scan bản vuln → **High 14, Medium 5** (SQLi, XSS×2, IDOR, path nhạy cảm, CMDI, CSRF, JWT, Upload, XXE, proto-pollution, mass-assign, blind-sqli, reset-token, DOM-XSS + headers/cookie/redirect/rate-limit), báo cáo xuất ra `reports/`.
 - Scan bản hardened → **High 0, Medium 0**.

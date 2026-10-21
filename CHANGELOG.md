@@ -44,13 +44,29 @@ theo [Semantic Versioning](https://semver.org/lang/vi/).
 - Favicon inline cho `/lab` + `/blue` (diệt 404 console).
 - `/lab` redesign sang theme Red Team (đỏ/cam, nhóm theo màu kỹ năng) tách
   biệt với Blue Team (cyan); giữ nguyên lọc, tiến độ, CTF panel.
+- **Filter nhóm không toggle** — bấm lại cùng nút nhóm vẫn giữ filter thay vì
+  về "Tất cả" (setDiff đã toggle đúng, setCat thì chưa) — phát hiện khi click
+  thử bằng browser, giờ `setCat` toggle giống `setDiff`.
+
+### Polish giao diện
+
+- **Micro-animations**: card fade-in + stagger khi filter/hiện lại, progress
+  bar shimmer, nút nhấn scale 0.94, live-dot vòng lan `ring`, badge VULN
+  pulse, alert card fade-in mỗi lần refresh.
+- **Hacker touch**: nền grid mờ 40px kiểu terminal trên cả `/lab`, `/blue`
+  và SecHub; tia scanline quét qua hero 5.5s; glyph watermark ⚔ (Red) / 🛡
+  (Blue) mờ ở góc hero; chấm màu nhóm phát sáng `box-shadow`.
+- **UX nhỏ**: `scroll-behavior:smooth`, `::selection` màu accent,
+  `:focus-visible` viền accent rõ cho keyboard nav, scrollbar custom cho
+  live feed, hover hàng feed, `<details>` đổi màu khi mở.
 
 ### Test
 
 - `tests/dashboard.test.js` +7: route `/blue`, `/_lab/alerts` bắt SQLi +
   admin-probe từ traffic thật, status recording, timestamp helper,
   `flagsOf` encoded-payload (extract+exec thật), MIME asset `/_lab/dash.*`,
-  coverage `LAB_DETECT` → **147 test** (trước 140).
+  coverage `LAB_DETECT`, nút tương tác trên card, toggle filter → **149 test**
+  (trước 140).
 - `tests/e2e.mjs` +3 check nhóm I: `/blue` render + asset JS, `/_lab/alerts`
   phát hiện từ traffic e2e, status trong log → **64 check** (trước 61).
 
