@@ -116,6 +116,10 @@ Sửa một chuyên mục xong, ghép lại bằng: `node scripts/assemble-hub.j
 Actions", sau đó mọi push đụng `hub/` sẽ tự publish tại
 `https://jasontm17.github.io/Security_Lab_Study/`.
 
+| Chuyên mục 10 — catalog 20 bài LAB trên Pages (tự sinh từ `src/lab/dashboard.js`) |
+|---|
+| ![SecHub — catalog chọn bài LAB](docs/images/sechub-lab-catalog.png) |
+
 Nội dung hub đã qua quy trình **độc giả độc lập**: 10 nhận xét (2 High — gồm sai
 khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; tên tội danh Điều
 287/288 thống nhất; tham chiếu chéo sai; lệnh thiếu cờ; thuật ngữ chưa giải thích)
