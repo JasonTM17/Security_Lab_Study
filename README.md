@@ -88,6 +88,12 @@ node src/cli.js jwt crack  <token>                            # từ điển sec
 node src/cli.js jwt forge --payload='{"sub":"ctfsvc"}' --alg=none
 ```
 
+## Demo — luồng Red Team → Blue Team
+
+| 🔴 Lọc theo nhóm · tìm kiếm · tick tiến độ · nộp cờ CTF ✅ → 🔵 feed tô đỏ · lọc nghi ngờ · xem chi tiết request · alert→defense |
+|---|
+| ![Demo Red Team + Blue Team dashboard](docs/images/demo-redblue.gif) |
+
 ## Hình ảnh thực tế
 
 | Lab `vuln` — 20 endpoint lỗ hổng chủ đích | Khai thác SQLi `' OR 1=1 --` trả về toàn bảng |
