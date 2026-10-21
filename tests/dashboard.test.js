@@ -39,6 +39,12 @@ test('card có đủ nút tương tác: filter chip, CTF jump, ex link, POST cur
   assert.ok(RED_JS.includes('dataset.post') && RED_JS.includes('data-setcat]') && RED_JS.includes('data-ctfgo]'));
 });
 
+test('filter nhóm toggle về "all" khi bấm lại (giống độ khó)', () => {
+  // Regression: trước đây setCat chỉ gán — bấm lại cùng nhóm vẫn giữ filter
+  assert.ok(RED_JS.includes("st.cat===v?'all':v"), 'setCat phải toggle về all');
+  assert.ok(RED_JS.includes('st.diff===v?0:v'), 'setDiff toggle về 0');
+});
+
 test('dữ liệu LABS: 20 bài, id duy nhất, category hợp lệ', () => {
   assert.equal(LABS.length, 20);
   assert.equal(new Set(LABS.map((l) => l.id)).size, 20);
