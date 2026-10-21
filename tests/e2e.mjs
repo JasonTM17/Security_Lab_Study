@@ -485,7 +485,9 @@ group('I. Dashboard /lab — catalog chọn bài');
     const t = await (await get(vuln, '/lab')).text();
     assert.match(t, /Red Team/);
     assert.equal((t.match(/data-cat=/g) || []).length, 20);
-    assert.ok(t.includes('ctfsend') && t.includes('/_lab/challenges'));
+    assert.ok(t.includes('ctfsend') && t.includes('/_lab/dash-red.js'));
+    const js = await (await get(vuln, '/_lab/dash-red.js')).text();
+    assert.ok(js.includes('/_lab/challenges') && js.includes('/_lab/verify'));
   });
 
   await check('I2. /lab hardened: 200 + banner đối chứng (không khuyến khích khai thác)', async () => {
@@ -497,8 +499,10 @@ group('I. Dashboard /lab — catalog chọn bài');
   await check('I3. /blue vuln: 200, SOC console + feed + rules', async () => {
     const t = await (await get(vuln, '/blue')).text();
     assert.match(t, /SOC Console/);
-    assert.ok(t.includes('/_lab/log') && t.includes('/_lab/alerts'));
+    assert.ok(t.includes('/_lab/dash-blue.js') && !t.includes('style="')); // CSP-safe
     assert.ok(t.includes('LAB-20')); // đủ 20 defensive cards
+    const js = await (await get(vuln, '/_lab/dash-blue.js')).text();
+    assert.ok(js.includes('/_lab/log') && js.includes('/_lab/alerts'));
   });
 
   await check('I4. /_lab/alerts: phát hiện attack từ traffic e2e thật', async () => {

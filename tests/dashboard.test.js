@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createLabApp } from '../src/lab/app.js';
-import { LABS, CATEGORIES, CAT_META, LAB_DETECT, renderDashboard, renderBlueDashboard, renderCatalog } from '../src/lab/dashboard.js';
+import { LABS, CATEGORIES, CAT_META, LAB_DETECT, renderDashboard, renderBlueDashboard, renderCatalog, DASH_CSS, RED_JS, BLUE_JS } from '../src/lab/dashboard.js';
 
 const box = {};
 before(async () => {
@@ -104,11 +104,39 @@ test('/_lab/log: ghi status sau khi response xong (0=in-flight)', async () => {
   assert.equal(e.status, 404);
 });
 
-test('renderBlueDashboard: hardened mode + rules render, timestamp helper có mặt', () => {
+test('renderBlueDashboard: hardened mode + rules render; JS/CSS tách ngoài cho CSP', () => {
   const html = renderBlueDashboard('hardened', [{ type: 'sqli', label: 'SQLi', severity: 'high' }]);
   assert.match(html, /LAB HARDENED/);
-  assert.ok(html.includes('typeof e.t'), 'client phải xử lý timestamp numeric');
   assert.ok(html.includes('sqli'));
+  // CSP hardened: style-src/script-src 'self' — KHÔNG được có <style>/<script> inline hay style=
+  assert.ok(!html.includes('<style>'), 'hardened CSP cấm inline <style>');
+  assert.ok(!html.includes('<script>${'), 'JS phải tải từ /_lab/dash-*.js');
+  assert.ok(!/style="/.test(html), 'hardened CSP cấm attribute style=');
+  assert.ok(html.includes('/_lab/dash.css') && html.includes('/_lab/dash-blue.js'));
+  assert.ok(BLUE_JS.includes('typeof e.t'), 'client phải xử lý timestamp numeric');
+  assert.ok(DASH_CSS.includes('--ac'));
+});
+
+test('flagsOf: decode path trước khi match — payload URL-encoded vẫn bị flag', () => {
+  // Trích flagsOf ra khỏi BLUE_JS và chạy thử trên payload đã encode
+  const m = BLUE_JS.match(/function flagsOf\(e\)\{[\s\S]*?return f;\n\}/);
+  assert.ok(m, 'không trích được flagsOf');
+  const fn = new Function(`${m[0]};return flagsOf;`)();
+  assert.deepEqual(fn({ path: '/search?q=%27%20UNION%20SELECT%201--', method: 'GET' }), ['SQLi']);
+  assert.ok(fn({ path: '/search?q=%3Cscript%3Ealert(1)%3C/script%3E', method: 'GET' }).includes('XSS'));
+  assert.ok(fn({ path: '/tools/ping?host=127.0.0.1%20%26%20whoami', method: 'GET' }).includes('CMDI'));
+  assert.deepEqual(fn({ path: '/search?q=alice', method: 'GET' }), []);
+});
+
+test('GET /_lab/dash.css + dash-*.js: asset dashboard phục vụ đúng MIME', async () => {
+  const css = await fetch(box.url + '/_lab/dash.css');
+  assert.equal(css.status, 200);
+  assert.match(css.headers.get('content-type'), /text\/css/);
+  for (const f of ['dash-red.js', 'dash-blue.js']) {
+    const r = await fetch(box.url + '/_lab/' + f);
+    assert.equal(r.status, 200, f);
+    assert.match(r.headers.get('content-type'), /javascript/);
+  }
 });
 
 test('LAB_DETECT: mỗi bài lab có defense map cho blue team', () => {
