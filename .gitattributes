@@ -1,0 +1,12 @@
+# Chuẩn hoá line-ending: kho lưu LF, checkout theo OS.
+* text=auto
+
+# Script shell phải giữ LF kể cả trên Windows (Git Bash, CI ubuntu).
+*.sh   text eol=lf
+*.mjs  text eol=lf
+
+# Ảnh nhị phân — không convert.
+*.png  binary
+*.jpg  binary
+*.svg  binary
+*.ico  binary

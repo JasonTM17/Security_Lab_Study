@@ -1,8 +1,21 @@
 {
   "name": "seclab",
-  "version": "1.0.0",
-  "description": "SecLab - Bộ công cụ học an toàn thông tin: lab web có lỗ hổng chủ đích, recon, quét lỗ hổng, mô phỏng DoS/load-test trên lab cục bộ và module phòng thủ. CHỈ dùng cho mục tiêu bạn sở hữu hoặc được phép.",
+  "version": "1.1.0",
+  "description": "SecLab - Bộ công cụ học an toàn thông tin: lab web 15 lỗ hổng chủ đích (kèm bản đối chứng hardened), recon, quét lỗ hổng 14 probe, CTF 7 thử thách, mô phỏng DoS/load-test trên lab cục bộ và module phòng thủ. CHỈ dùng cho mục tiêu bạn sở hữu hoặc được phép.",
   "type": "module",
+  "author": {
+    "name": "Nguyen Tien Son",
+    "email": "jasonbmt06@gmail.com",
+    "url": "https://github.com/JasonTM17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JasonTM17/Security_Lab_Study.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JasonTM17/Security_Lab_Study/issues"
+  },
+  "homepage": "https://github.com/JasonTM17/Security_Lab_Study#readme",
   "main": "src/cli.js",
   "bin": {
     "seclab": "src/cli.js"
@@ -20,10 +33,22 @@
   },
   "keywords": [
     "security",
+    "cybersecurity",
     "education",
     "lab",
     "vulnerability-scanner",
-    "rate-limiting"
+    "owasp",
+    "owasp-top10",
+    "ctf",
+    "blue-team",
+    "penetration-testing",
+    "ethical-hacking",
+    "jwt",
+    "sql-injection",
+    "xss",
+    "rate-limiting",
+    "infosec",
+    "vietnamese"
   ],
   "license": "MIT"
 }
