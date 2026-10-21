@@ -1,5 +1,11 @@
 # SecLab — Bộ công cụ HỌC an toàn thông tin (lab cục bộ)
 
+[![CI](https://github.com/JasonTM17/Security_Lab_Study/actions/workflows/ci.yml/badge.svg)](https://github.com/JasonTM17/Security_Lab_Study/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/Node-%E2%89%A522.5-339933?logo=node.js&logoColor=white)](package.json)
+[![Tests](https://img.shields.io/badge/tests-115%20unit%20%C2%B7%2054%20e2e-brightgreen)](#kết-quả-đã-được-xác-minh-chạy-thật-trên-máy-này)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 > ⚠️ **Công cụ này KHÔNG phải và KHÔNG THỂ là công cụ DDoS tấn công website trên
 > Internet.** Mọi lệnh chủ động bị chặn cứng với mục tiêu public (xem
 > [docs/01-phap-ly-va-dao-duc.md](docs/01-phap-ly-va-dao-duc.md) — Điều 287 BLHS 2015).
@@ -158,4 +164,10 @@ cao nhất nhiều năm tù), ngoài ra còn Luật An ninh mạng 2018. Học a
 tin đúng nghĩa là: lab của mình → đo lường → vá lỗi → báo cáo. SecLab được thiết
 kế để chỉ cho phép bạn làm đúng điều đó.
 
-Giấy phép: MIT.
+## Đóng góp & báo lỗi
+
+- Muốn đóng góp lab/bài tập mới → đọc [CONTRIBUTING.md](CONTRIBUTING.md).
+- Lỗi bảo mật của chính công cụ (phá guard, đụng đĩa thật…) → đọc [SECURITY.md](SECURITY.md).
+- Mọi lỗ hổng trong bản `vuln` là **chủ đích** — đừng báo như bug.
+
+Giấy phép: [MIT](LICENSE).
