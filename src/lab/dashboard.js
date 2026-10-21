@@ -414,14 +414,40 @@ code{background:#1e293b;color:#e2e8f0;padding:1px 5px;border-radius:4px;font-siz
 .pill{display:inline-block;border-radius:6px;padding:0 6px;font-size:.72rem;font-weight:700}
 .pill.high{background:#450a0a;color:#fca5a5}.pill.medium{background:#422006;color:#fcd34d}.pill.low{background:#0c2f26;color:#6ee7b7}
 .alert{border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:10px;padding:.7rem .9rem;margin:.5rem 0;background:#101a30}
+.alert.sev-high{border-left-color:#f87171}
+.alert.sev-medium{border-left-color:#fbbf24}
+.alert.sev-low{border-left-color:#34d399}
 .alert h4{margin:0 0 .25rem;font-size:.92rem;display:flex;gap:.5rem;align-items:center}
 .alert .def{color:#86efac;font-size:.8rem;margin:.35rem 0 0}
-.alert .samp{font-family:monospace;font-size:.75rem;color:#94a3b8}
+.alert .samp{font-family:monospace;font-size:.75rem;color:#94a3b8;overflow-wrap:anywhere}
 .rules{width:100%;border-collapse:collapse;font-size:.85rem}
 .rules td,.rules th{border-bottom:1px solid var(--line);padding:.45rem .6rem;text-align:left;vertical-align:top}
+.rules tbody tr{transition:background .12s}
+.rules tbody tr:hover{background:color-mix(in srgb,var(--ac) 7%,transparent)}
 .bluegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.8rem}
-.bcard{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--cat,#38bdf8);border-radius:10px;padding:.8rem;font-size:.85rem}
-.bcard h4{margin:0 0 .3rem;font-size:.92rem}
+.bcard{background:linear-gradient(180deg,color-mix(in srgb,var(--cat) 7%,var(--card)) 0%,var(--card) 55%);
+  border:1px solid var(--line);border-radius:12px;padding:.85rem .95rem .75rem 1.05rem;font-size:.85rem;
+  display:flex;flex-direction:column;gap:.45rem;position:relative;overflow:hidden;
+  transition:transform .15s,border-color .15s,box-shadow .15s}
+.bcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--cat),color-mix(in srgb,var(--cat) 40%,transparent))}
+.bcard:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--cat) 55%,var(--line));
+  box-shadow:0 8px 26px -10px color-mix(in srgb,var(--cat) 50%,transparent)}
+.bcard header{display:flex;align-items:center;gap:.45rem}
+.bcard .bid{font-weight:800;color:var(--cat);letter-spacing:.6px;font-size:.8rem}
+.bcard .stars{color:#f59e0b;font-size:.72rem;letter-spacing:1px}
+.bcard .bcat{margin-left:auto;font-size:.66rem;font-weight:600;color:var(--cat);
+  border:1px solid color-mix(in srgb,var(--cat) 45%,var(--line));border-radius:99px;padding:1px 8px;
+  background:color-mix(in srgb,var(--cat) 10%,transparent);white-space:nowrap}
+.bcard h4{margin:0;font-size:.95rem;line-height:1.3}
+.bcard .bharden{margin:0;color:#94a3b8;font-size:.78rem;line-height:1.45}
+.bcard .bharden b{color:#cbd5e1;font-weight:600}
+.bcard footer{margin-top:auto;display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;
+  border-top:1px dashed var(--line);padding-top:.5rem}
+.brule{display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;font-weight:700;
+  color:#67e8f9;background:#083344;border:1px solid #155e75;border-radius:6px;padding:1px 7px;
+  font-family:ui-monospace,Consolas,monospace}
+.bblind{display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:600;
+  color:#fcd34d;background:#422006;border:1px solid #92400e;border-radius:6px;padding:2px 8px}
 .bcard .muted{color:#64748b;font-size:.78rem}
 .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:.4rem;animation:blink 1.2s infinite}
 .live.off{background:#475569;animation:none}
@@ -549,7 +575,7 @@ async function alerts(){
     const j=await(await fetch('/_lab/alerts')).json();
     $('#alertcount').textContent=j.attacksDetected??0;
     $('#alerts').innerHTML=(j.findings||[]).map(f=>
-      '<div class="alert"><h4><span class="pill '+f.severity+'">'+f.severity.toUpperCase()+'</span> '+
+      '<div class="alert sev-'+f.severity+'"><h4><span class="pill '+f.severity+'">'+f.severity.toUpperCase()+'</span> '+
       escH(f.label)+' <span class="muted">×'+f.count+'</span></h4>'+
       (f.samples||[]).map(s=>'<div class="samp">› '+escH(s)+'</div>').join('')+
       '<p class="def">🛡 '+escH(f.defense)+'</p></div>').join('')
@@ -643,13 +669,15 @@ export function renderBlueDashboard(mode, rules = []) {
     .join('');
   const blueCards = LABS.map((l) => {
     const color = CAT_META[l.cat]?.color || '#38bdf8';
-    const watch = (LAB_DETECT[l.id] || []).length
-      ? `🔎 rule: ${LAB_DETECT[l.id].map((t) => `<code>${esc(t)}</code>`).join(' ')}`
-      : '⚠ <b>telemetry mù</b> — access log không đủ, cần app-level logging';
+    const det = LAB_DETECT[l.id] || [];
+    const watch = det.length
+      ? det.map((t) => `<span class="brule">◈ ${esc(t)}</span>`).join('')
+      : '<span class="bblind">⚠ telemetry mù — cần app-level logging</span>';
     return `<div class="bcard" style="--cat:${color}">
-  <h4>${l.id} · ${esc(l.title)}</h4>
-  <p class="muted">Phòng thủ: ${esc(l.hard)}</p>
-  <p class="muted">${watch}</p>
+  <header><span class="bid">${l.id}</span><span class="stars">${DIFF_STARS[l.diff - 1]}</span><span class="bcat">${esc(CATEGORIES[l.cat])}</span></header>
+  <h4>${esc(l.title)}</h4>
+  <p class="bharden"><b>Phòng thủ:</b> ${esc(l.hard)}</p>
+  <footer>${watch}</footer>
 </div>`;
   }).join('');
   return `<!doctype html>
