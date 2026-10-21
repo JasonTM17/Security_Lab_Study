@@ -60,12 +60,26 @@ theo [Semantic Versioning](https://semver.org/lang/vi/).
   `:focus-visible` viền accent rõ cho keyboard nav, scrollbar custom cho
   live feed, hover hàng feed, `<details>` đổi màu khi mở.
 
+### Thêm (tiện ích dashboard)
+
+- **Red Team**: nút `⇩ xuất .md` (tải báo cáo tiến độ + điểm CTF dạng
+  markdown), `↺ reset tiến độ` (xoá tick, có confirm), `⌫ reset filter`,
+  phím tắt `/` focus tìm kiếm + `Esc` reset filter, banner 🎓 khi đạt
+  20/20, onboarding toast hướng dẫn lần đầu vào (lưu `localStorage`).
+- **Blue Team**: checkbox `chỉ nghi ngờ` lọc feed theo hàng khớp pattern,
+  **bấm hàng feed → panel chi tiết request** (path decoded, status, UA,
+  flags — toggle đóng/mở), stat `⚠ nghi ngờ` trên hero, alert cards link
+  tới đúng defense card qua anchor `#def-lab-xx` (map `DETECT2LAB` inject
+  vào `dash-blue.js`), defense card highlight khi được nhảy tới.
+
 ### Test
 
 - `tests/dashboard.test.js` +7: route `/blue`, `/_lab/alerts` bắt SQLi +
   admin-probe từ traffic thật, status recording, timestamp helper,
   `flagsOf` encoded-payload (extract+exec thật), MIME asset `/_lab/dash.*`,
-  coverage `LAB_DETECT`, nút tương tác trên card, toggle filter → **149 test**
+  coverage `LAB_DETECT`, nút tương tác trên card, toggle filter, control
+  tiện ích (reset/export/shortcut/win/toast), blue feed filter+detail →
+  **151 test**
   (trước 140).
 - `tests/e2e.mjs` +3 check nhóm I: `/blue` render + asset JS, `/_lab/alerts`
   phát hiện từ traffic e2e, status trong log → **64 check** (trước 61).
