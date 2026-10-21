@@ -14,6 +14,28 @@ export const CATEGORIES = {
   logic: 'Logic nâng cao',
 };
 
+// Màu + mô tả nhóm — dùng cho group header trên dashboard & border thẻ.
+export const CAT_META = {
+  injection: { color: '#f43f5e', desc: 'Dữ liệu bị trộn vào cú pháp lệnh/query — SQL, shell, XML entity' },
+  xss: { color: '#fb923c', desc: 'Script thực thi trong trình duyệt nạn nhân — reflected, stored, DOM' },
+  access: { color: '#a78bfa', desc: 'Vượt quyền đọc/ghi đối tượng — IDOR, traversal, admin, upload' },
+  auth: { color: '#38bdf8', desc: 'Đánh cắp hoặc giả mạo danh tính — CSRF, JWT, reset token' },
+  config: { color: '#facc15', desc: 'Thiếu hàng rào mặc định — headers, rate limit, lỗi chi tiết, redirect' },
+  logic: { color: '#4ade80', desc: 'Lỗi ngữ nghĩa ứng dụng — prototype pollution, mass assignment' },
+};
+
+// Bài lab → detection rule nào của detect.js sẽ nhìn thấy (log phía blue-team).
+// Bài KHÔNG có trong map = telemetry mù — bài học: access log không đủ.
+export const LAB_DETECT = {
+  'LAB-01': ['sqli'], 'LAB-02': ['xss'], 'LAB-03': [],
+  'LAB-04': ['traversal', 'secret-probe'], 'LAB-05': [], 'LAB-06': ['brute-force'],
+  'LAB-07': ['admin-probe'], 'LAB-08': [], 'LAB-09': ['cmdinj'],
+  'LAB-10': [], 'LAB-11': ['jwt-probe'], 'LAB-12': ['open-redir'],
+  'LAB-13': ['upload-abuse'], 'LAB-14': ['xxe'], 'LAB-15': ['xss'],
+  'LAB-16': ['proto-pollution'], 'LAB-17': ['mass-assign'], 'LAB-18': ['blind-sqli'],
+  'LAB-19': ['reset-probe'], 'LAB-20': [],
+};
+
 export const DIFFS = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
 
 // eps: method + path (GET có thể click mở trên lab sống; POST minh hoạ bằng code)
@@ -283,12 +305,13 @@ function renderCard(lab, { interactive = true } = {}) {
   const ctf = lab.ctf
     ? `<span class="chip ctf">🏆 CTF #${lab.ctf.id} · ${lab.ctf.pts}đ</span>`
     : '';
+  const color = CAT_META[lab.cat]?.color || '#334155';
   return `
-<article class="card" data-cat="${lab.cat}" data-diff="${lab.diff}" data-ctf="${lab.ctf ? 1 : 0}" id="${lab.id.toLowerCase()}">
+<article class="card" style="--cat:${color}" data-cat="${lab.cat}" data-diff="${lab.diff}" data-ctf="${lab.ctf ? 1 : 0}" id="${lab.id.toLowerCase()}">
   <header>
     <span class="labid">${lab.id}</span>
     <span class="stars" title="${DIFFS[lab.diff]}">${DIFF_STARS[lab.diff - 1]}</span>
-    <span class="chip cat">${esc(cat)}</span>
+    <span class="chip cat" style="border-color:${color};color:${color}">${esc(cat)}</span>
     ${ctf}
   </header>
   <h3>${esc(lab.title)}</h3>
@@ -304,76 +327,132 @@ function renderCard(lab, { interactive = true } = {}) {
 </article>`;
 }
 
+// ─── Theme chung cho cả hai dashboard — mỗi team một accent ───
 const DASH_CSS = `
-:root{color-scheme:dark}
+:root{color-scheme:dark;--ac:#ef4444;--ac2:#f97316;--bg:#0a0f1a;--card:#0f172a;--line:#1e293b;--txt:#e2e8f0;--dim:#94a3b8}
 *{box-sizing:border-box}
-body{font-family:system-ui,'Segoe UI',sans-serif;background:#0b1220;color:#e2e8f0;margin:0;padding:0 1rem 3rem}
-a{color:#4ade80}
+body{font-family:system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:3rem}
+a{color:var(--ac)}
 code{background:#1e293b;color:#e2e8f0;padding:1px 5px;border-radius:4px;font-size:.85em}
-.wrap{max-width:1280px;margin:0 auto}
-.mode{display:inline-block;padding:2px 12px;border-radius:12px;font-weight:700;font-size:.85em}
+.wrap{max-width:1300px;margin:0 auto;padding:0 1rem}
+/* ── top nav ── */
+.topnav{display:flex;align-items:center;gap:1rem;padding:.7rem 1.2rem;background:#0d1424;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.brand{font-weight:800;letter-spacing:.5px;font-size:1.05rem}
+.brand em{font-style:normal;color:var(--ac)}
+.navtab{padding:.35rem .95rem;border-radius:8px;color:var(--dim);text-decoration:none;font-size:.88rem;border:1px solid transparent}
+.navtab:hover{color:var(--txt);border-color:var(--line)}
+.navtab.on{color:var(--txt);border-color:var(--ac);background:color-mix(in srgb,var(--ac) 14%,transparent)}
+.mode{margin-left:auto;display:inline-block;padding:3px 12px;border-radius:12px;font-weight:700;font-size:.8rem}
 .vuln{background:#450a0a;color:#fca5a5}.hardened{background:#052e16;color:#86efac}
-h1{margin:.4rem 0 .2rem}
-.sub{color:#94a3b8;margin:0 0 1rem}
-.stats{display:flex;gap:.6rem;flex-wrap:wrap;margin:.8rem 0}
-.stat{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:.45rem .9rem;font-size:.9rem}
-.stat b{color:#4ade80}
-.progress{height:10px;background:#1e293b;border-radius:6px;overflow:hidden;margin:.6rem 0 1rem;border:1px solid #334155}
-.progress>div{height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);width:0;transition:width .3s}
-.filters{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:1rem 0;padding:.8rem;background:#0f172a;border:1px solid #1e293b;border-radius:12px;position:sticky;top:0;z-index:5}
+/* ── hero ── */
+.hero{margin:1.2rem 0;padding:1.4rem 1.5rem;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 16%,var(--card)) 0%,var(--card) 55%)}
+.hero h1{margin:.1rem 0 .3rem;font-size:1.7rem}
+.hero .tag{color:var(--ac);font-weight:700;letter-spacing:2px;font-size:.75rem;text-transform:uppercase}
+.sub{color:var(--dim);margin:0}
+.stats{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+.stat{background:#101a30;border:1px solid var(--line);border-radius:10px;padding:.5rem .95rem;font-size:.88rem}
+.stat b{color:var(--ac)}
+/* ── progress + filters ── */
+.progress{height:10px;background:#1e293b;border-radius:6px;overflow:hidden;margin:.8rem 0 .4rem;border:1px solid var(--line)}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));width:0;transition:width .3s}
+.filters{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:.9rem 0;padding:.75rem .8rem;background:var(--card);border:1px solid var(--line);border-radius:12px;position:sticky;top:52px;z-index:5}
 .filters button,.filters .ftoggle{background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:8px;padding:.35rem .8rem;cursor:pointer;font-size:.85rem}
-.filters button.on{background:#166534;color:#dcfce7;border-color:#16a34a}
-.filters input[type=search]{background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:.4rem .7rem;min-width:200px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:1rem}
-.card{background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.5rem}
-.card.is-done{border-color:#16a34a;opacity:.85}
+.filters button.on{background:color-mix(in srgb,var(--ac) 25%,#1e293b);color:#fff;border-color:var(--ac)}
+.filters input[type=search]{background:#1e293b;border:1px solid #334155;color:var(--txt);border-radius:8px;padding:.4rem .7rem;min-width:210px}
+/* ── group sections ── */
+.group{margin:1.4rem 0 .6rem}
+.group>h2{display:flex;align-items:center;gap:.55rem;font-size:1.05rem;margin:0 0 .15rem}
+.group .dot{width:11px;height:11px;border-radius:50%;flex:none}
+.group .gdesc{color:var(--dim);font-size:.82rem;margin:0 0 .6rem 1.6rem}
+.group .gcount{color:var(--dim);font-weight:400;font-size:.8rem}
+/* ── cards ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--cat,#334155);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.5rem;transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 22px -8px color-mix(in srgb,var(--cat) 45%,transparent)}
+.card.is-done{border-color:#16a34a;border-left-color:#16a34a;opacity:.8}
 .card header{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
 .labid{font-weight:800;color:#fbbf24;letter-spacing:.5px}
 .stars{color:#f59e0b;font-size:.85rem}
-.chip{border-radius:8px;padding:1px 8px;font-size:.75rem;border:1px solid #334155;color:#94a3b8}
-.chip.cat{border-color:#0ea5e9;color:#7dd3fc}
+.chip{border-radius:8px;padding:1px 8px;font-size:.75rem;border:1px solid #334155;color:var(--dim)}
 .chip.ctf{border-color:#f59e0b;color:#fcd34d}
-.card h3{margin:.1rem 0;font-size:1.05rem}
+.card h3{margin:.1rem 0;font-size:1.02rem}
 .en{color:#64748b;font-size:.8rem;margin:0}
-.goal{margin:0;font-size:.9rem;color:#c4b5fd}
+.goal{margin:0;font-size:.88rem;color:#c4b5fd}
 .eps{margin:0;padding-left:1.2rem;font-size:.85rem}
 .eps li{margin:.15rem 0}
 .hint{font-size:.85rem}
 .hint summary{cursor:pointer;color:#fbbf24}
 .hint ul{margin:.4rem 0;padding-left:1.1rem}
 .cp{background:none;border:0;color:#64748b;cursor:pointer;font-size:1em;padding:0 2px}
-.cp:hover{color:#4ade80}
+.cp:hover{color:var(--ac)}
 .check{margin:0;font-size:.8rem;color:#86efac}
-.card footer{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#64748b;border-top:1px dashed #1e293b;padding-top:.5rem}
+.card footer{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#64748b;border-top:1px dashed var(--line);padding-top:.5rem}
 .done{cursor:pointer}
-.panel{background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:1rem;margin:1.2rem 0}
-.panel h2{margin-top:0;font-size:1.1rem}
+/* ── panels ── */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem;margin:1.2rem 0}
+.panel h2{margin-top:0;font-size:1.05rem}
 #ctflist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.6rem}
-.ctfitem{background:#1e293b;border-radius:8px;padding:.6rem;font-size:.85rem}
-.ctfitem.solved{border:1px solid #16a34a}
+.ctfitem{background:#101a30;border-radius:8px;padding:.6rem;font-size:.85rem;border:1px solid transparent}
+.ctfitem.solved{border-color:#16a34a}
 .ctfitem .pts{color:#fcd34d}
 .submit{display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap}
-.submit input{background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:.45rem .7rem}
+.submit input{background:#1e293b;border:1px solid #334155;color:var(--txt);border-radius:8px;padding:.45rem .7rem}
 .submit input[name=flag]{flex:1;min-width:220px;font-family:monospace}
-.submit button{background:#166534;color:#dcfce7;border:0;border-radius:8px;padding:.45rem 1.1rem;cursor:pointer;font-weight:600}
+.submit button{background:color-mix(in srgb,var(--ac) 30%,#1e293b);color:#fff;border:1px solid var(--ac);border-radius:8px;padding:.45rem 1.1rem;cursor:pointer;font-weight:600}
 .warn{background:#450a0a;border:1px solid #7f1d1d;border-radius:10px;padding:.6rem .9rem;font-size:.85rem;color:#fca5a5;margin:.8rem 0}
 .hide{display:none!important}
+/* ── blue-team widgets ── */
+.feedtbl{width:100%;border-collapse:collapse;font-family:ui-monospace,Consolas,monospace;font-size:.78rem}
+.feedtbl td,.feedtbl th{border-bottom:1px solid var(--line);padding:.3rem .5rem;text-align:left;vertical-align:top}
+.feedtbl th{color:var(--dim);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+.feedtbl tr.sus td{background:rgba(244,63,94,.08)}
+.feedtbl .sev-high{color:#f87171;font-weight:700}
+.feedtbl .sev-med{color:#fbbf24}
+.feedtbl .sev-ok{color:#4ade80}
+.feedbox{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.pill{display:inline-block;border-radius:6px;padding:0 6px;font-size:.72rem;font-weight:700}
+.pill.high{background:#450a0a;color:#fca5a5}.pill.medium{background:#422006;color:#fcd34d}.pill.low{background:#0c2f26;color:#6ee7b7}
+.alert{border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:10px;padding:.7rem .9rem;margin:.5rem 0;background:#101a30}
+.alert h4{margin:0 0 .25rem;font-size:.92rem;display:flex;gap:.5rem;align-items:center}
+.alert .def{color:#86efac;font-size:.8rem;margin:.35rem 0 0}
+.alert .samp{font-family:monospace;font-size:.75rem;color:#94a3b8}
+.rules{width:100%;border-collapse:collapse;font-size:.85rem}
+.rules td,.rules th{border-bottom:1px solid var(--line);padding:.45rem .6rem;text-align:left;vertical-align:top}
+.bluegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.8rem}
+.bcard{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--cat,#38bdf8);border-radius:10px;padding:.8rem;font-size:.85rem}
+.bcard h4{margin:0 0 .3rem;font-size:.92rem}
+.bcard .muted{color:#64748b;font-size:.78rem}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:.4rem;animation:blink 1.2s infinite}
+.live.off{background:#475569;animation:none}
+@keyframes blink{50%{opacity:.3}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 `;
 
-const DASH_JS = `
+const NAV = (mode, active) => `
+<nav class="topnav">
+  <span class="brand">⚔ Sec<em>Lab</em> Console</span>
+  <a class="navtab" href="/">🏠 Trang chủ</a>
+  <a class="navtab ${active === 'red' ? 'on' : ''}" href="/lab">🔴 Red Team</a>
+  <a class="navtab ${active === 'blue' ? 'on' : ''}" href="/blue">🔵 Blue Team</a>
+  <a class="navtab" href="https://jasontm17.github.io/Security_Lab_Study/" target="_blank" rel="noopener">📚 SecHub</a>
+  <span class="mode ${mode}">LAB ${mode.toUpperCase()}</span>
+</nav>`;
+
+const RED_JS = `
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-// --- filter theo category/difficulty/ctf/search ---
 const st={cat:'all',diff:0,ctf:false,q:''};
 function apply(){
+  let shown=0;
   $$('.card').forEach(c=>{
     const ok=(st.cat==='all'||c.dataset.cat===st.cat)
       &&(!st.diff||+c.dataset.diff===st.diff)
       &&(!st.ctf||c.dataset.ctf==='1')
       &&(!st.q||c.textContent.toLowerCase().includes(st.q));
-    c.classList.toggle('hide',!ok);
+    c.classList.toggle('hide',!ok);if(ok)shown++;
   });
-  $('#count').textContent=$$('.card:not(.hide)').length;
+  $$('.group').forEach(g=>{g.classList.toggle('hide',![...g.querySelectorAll('.card')].some(c=>!c.classList.contains('hide')))});
+  $('#count').textContent=shown;
 }
 $$('.fbtn').forEach(b=>b.onclick=()=>{
   if(b.dataset.k==='cat'){st.cat=b.dataset.v;$$('[data-k=cat]').forEach(x=>x.classList.toggle('on',x===b));}
@@ -382,9 +461,7 @@ $$('.fbtn').forEach(b=>b.onclick=()=>{
 });
 $('#fctf').onchange=e=>{st.ctf=e.target.checked;apply();};
 $('#fsearch').oninput=e=>{st.q=e.target.value.toLowerCase();apply();};
-// --- copy payload ---
 $$('.cp').forEach(b=>b.onclick=()=>{navigator.clipboard?.writeText(b.dataset.cp);b.textContent='✓';setTimeout(()=>b.textContent='⧉',800);});
-// --- tiến độ localStorage ---
 const KEY='seclab-lab-done';
 const done=new Set(JSON.parse(localStorage.getItem(KEY)||'[]'));
 function paint(){
@@ -393,14 +470,13 @@ function paint(){
     cb.closest('.card').classList.toggle('is-done',cb.checked);
   });
   $('#prog').style.width=(done.size/20*100)+'%';
-  $('#progtxt').textContent=done.size+'/20 bài';
+  $('#progtxt').textContent=done.size+'/20 mục tiêu';
 }
 $$('[data-done]').forEach(cb=>cb.onchange=()=>{
   cb.checked?done.add(cb.dataset.done):done.delete(cb.dataset.done);
   localStorage.setItem(KEY,JSON.stringify([...done]));paint();
 });
 paint();
-// --- CTF live ---
 async function loadCtf(){
   try{
     const r=await fetch('/_lab/challenges');const j=await r.json();
@@ -422,36 +498,113 @@ $('#ctfsend').onclick=async()=>{
 };
 `;
 
-/** Trang dashboard tương tác — GET /lab trên lab sống. */
+const BLUE_JS = `
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let paused=false;
+const SUS=[
+  /('|%27)\\s*(or|and)\\s|\\bunion\\b|\\-\\-(\\s|$)/i,'SQLi',
+  /<script|<svg|onerror\\s*=|onload\\s*=|javascript:/i,'XSS',
+  /\\.\\.|etc\\/passwd|boot\\.ini/i,'TRAV',
+  /\\/admin/i,'ADMIN',
+  /\\/redirect.*to=(https?%3a|https?:|\\/\\/)/i,'REDIR',
+  /\\/track.*('|%27)/i,'BLIND',
+  /\\/api\\/reset\\//i,'RESET',
+];
+function flagsOf(e){
+  const f=[];
+  if(/('|%27)\\s*(or|and)\\s|\\bunion\\b/i.test(e.path))f.push('SQLi');
+  if(/<script|<svg|onerror|onload|javascript:/i.test(e.path))f.push('XSS');
+  if(/\\.\\.|etc\\/passwd|boot\\.ini/i.test(e.path))f.push('TRAV');
+  if(/\\/admin/i.test(e.path))f.push('ADMIN');
+  if(/\\/redirect.*to=(https?%3a|https?:|\\/\\/)/i.test(e.path))f.push('REDIR');
+  if(/\\/track.*('|%27)/i.test(e.path))f.push('BLIND');
+  if(/\\/api\\/reset\\//i.test(e.path))f.push('RESET');
+  if(e.method==='POST'&&/\\/api\\/config/i.test(e.path))f.push('PROTO');
+  if(e.method==='POST'&&/\\/api\\/register.*role=/i.test(e.path))f.push('MASS');
+  if(e.method==='POST'&&/\\/api\\/import/i.test(e.path))f.push('XXE');
+  if(e.method==='POST'&&/\\/upload/i.test(e.path))f.push('UPLOAD');
+  if(/\\/tools\\/ping.*(%26|%3[bB]|%7[cC]|whoami|\\benv\\b|\\bset\\b)/i.test(e.path))f.push('CMDI');
+  if(/sqlmap|nikto|nmap|masscan|gobuster|dirbuster|wfuzz|curl\\/|wget|hydra/i.test(e.ua||''))f.push('SCANNER');
+  return f;
+}
+const escH=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+async function feed(){
+  if(paused)return;
+  try{
+    const j=await(await fetch('/_lab/log')).json();
+    const log=(j.log||[]).slice(-80).reverse();
+    $('#reqcount').textContent=j.log?.length??0;
+    $('#feed').innerHTML=log.map(e=>{
+      const fl=flagsOf(e);
+      const t=typeof e.t==='number'?new Date(e.t).toTimeString().slice(0,8):String(e.t||'—').slice(11,19);
+      return '<tr class="'+(fl.length?'sus':'')+'"><td>'+escH(t)+'</td><td>'+escH(e.method||'GET')+'</td>'+
+        '<td title="'+escH(e.path)+'">'+escH((e.path||'').slice(0,72))+'</td><td>'+escH(e.ip||'—')+'</td>'+
+        '<td>'+(e.status?('<span class="'+(e.status<300?'sev-ok':e.status<400?'sev-ok':e.status<500?'sev-med':'sev-high')+'">'+e.status+'</span>'):'—')+'</td><td>'+fl.map(x=>'<span class="pill high">'+x+'</span>').join(' ')+'</td></tr>';
+    }).join('')||'<tr><td colspan="6" class="sub">Chưa có traffic — hãy tấn công lab rồi quay lại.</td></tr>';
+  }catch(e){/* lab chết thì giữ nguyên khung */}
+}
+async function alerts(){
+  if(paused)return;
+  try{
+    const j=await(await fetch('/_lab/alerts')).json();
+    $('#alertcount').textContent=j.attacksDetected??0;
+    $('#alerts').innerHTML=(j.findings||[]).map(f=>
+      '<div class="alert"><h4><span class="pill '+f.severity+'">'+f.severity.toUpperCase()+'</span> '+
+      escH(f.label)+' <span class="muted">×'+f.count+'</span></h4>'+
+      (f.samples||[]).map(s=>'<div class="samp">› '+escH(s)+'</div>').join('')+
+      '<p class="def">🛡 '+escH(f.defense)+'</p></div>').join('')
+      ||'<p class="sub">Chưa phát hiện tấn công nào — log sạch.</p>';
+  }catch(e){}
+}
+$('#pausebtn').onclick=()=>{paused=!paused;$('#pausebtn').textContent=paused?'▶ Tiếp tục':'⏸ Tạm dừng';$('#livedot').className='live'+(paused?' off':'');};
+feed();alerts();setInterval(feed,2500);setInterval(alerts,5000);
+`;
+
+/** Trang dashboard tương tác — GET /lab (Red Team view). */
 export function renderDashboard(mode) {
   const hardened = mode === 'hardened';
-  const cards = LABS.map((l) => renderCard(l, { interactive: true })).join('');
   const catBtns = ['all', ...Object.keys(CATEGORIES)]
-    .map((k) => `<button class="fbtn ${k === 'all' ? 'on' : ''}" data-k="cat" data-v="${k}">${k === 'all' ? 'Tất cả' : esc(CATEGORIES[k])}</button>`)
+    .map((k) => `<button class="fbtn ${k === 'all' ? 'on' : ''}" data-k="cat" data-v="${k}">${k === 'all' ? '🎯 Tất cả' : esc(CATEGORIES[k])}</button>`)
     .join('');
   const diffBtns = [1, 2, 3]
     .map((d) => `<button class="fbtn" data-k="diff" data-v="${d}">${DIFF_STARS[d - 1]} ${DIFFS[d]}</button>`)
     .join('');
   const ctfCount = LABS.filter((l) => l.ctf).length;
   const ctfPts = LABS.reduce((s, l) => s + (l.ctf?.pts || 0), 0);
+  const groups = Object.keys(CATEGORIES)
+    .map((cat) => {
+      const labs = LABS.filter((l) => l.cat === cat);
+      const m = CAT_META[cat];
+      return `<section class="group">
+  <h2><span class="dot" style="background:${m.color}"></span>${esc(CATEGORIES[cat])} <span class="gcount">· ${labs.length} mục tiêu</span></h2>
+  <p class="gdesc">${esc(m.desc)}</p>
+  <div class="grid">${labs.map((l) => renderCard(l, { interactive: true })).join('')}</div>
+</section>`;
+    })
+    .join('\n');
   return `<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark"><title>Chọn bài LAB — SecLab [${mode.toUpperCase()}]</title>
-<style>${DASH_CSS}</style></head><body><div class="wrap">
-<p style="margin-top:1rem"><span class="mode ${mode}">LAB ${mode.toUpperCase()}</span></p>
-<h1>🧪 Chọn bài LAB — Dashboard thực hành</h1>
-<p class="sub">20 lỗ hổng cố ý · mỗi bài có mục tiêu, endpoint, payload gợi ý và cách kiểm chứng bản đã vá.
-Đánh dấu "Đã xong" — tiến độ lưu ngay trên trình duyệt của bạn.</p>
-<div class="stats">
-  <span class="stat">📚 <b>20</b> bài lab</span>
-  <span class="stat">🏆 <b>${ctfCount}</b> thử thách CTF · <b>${ctfPts}</b>đ</span>
-  <span class="stat">🧭 <b>6</b> nhóm kỹ năng</span>
-  <span class="stat">🛡 bản đối chứng: <a href="http://127.0.0.1:3001/lab">127.0.0.1:3001</a></span>
-  <span class="stat">Điểm CTF phiên: <b id="score">—</b></span>
+<meta name="color-scheme" content="dark"><title>🔴 Red Team — Chọn mục tiêu | SecLab [${mode.toUpperCase()}]</title>
+<style>${DASH_CSS}</style></head><body>
+${NAV(mode, 'red')}
+<div class="wrap">
+<div class="hero">
+  <div class="tag">🔴 Red Team Operations</div>
+  <h1>Chọn mục tiêu — 20 lỗ hổng đang chờ</h1>
+  <p class="sub">Mỗi mục tiêu gồm endpoint thật, payload gợi ý và cách kiểm chứng bản đã vá.
+  Đánh dấu "Đã xong" — tiến độ lưu trên trình duyệt của bạn. Xong xuôi, qua
+  <a href="/blue">🔵 Blue Team</a> xem phía phòng thủ nhìn thấy gì.</p>
+  <div class="stats">
+    <span class="stat">🎯 <b>20</b> mục tiêu</span>
+    <span class="stat">🏆 <b>${ctfCount}</b> thử thách CTF · <b>${ctfPts}</b>đ</span>
+    <span class="stat">🧭 <b>6</b> nhóm kỹ năng</span>
+    <span class="stat">🛡 bản đối chứng: <a href="http://127.0.0.1:3001/lab">127.0.0.1:3001</a></span>
+    <span class="stat">Điểm CTF: <b id="score">—</b></span>
+  </div>
 </div>
-${hardened ? '<p class="warn">⚠ Bạn đang ở bản <b>HARDENED</b> — các lỗ hổng đã vá. Dùng trang này để <b>đối chứng</b>: payload gợi ý phải BỊ CHẶN. Khai thác thật hãy mở <a href="http://127.0.0.1:3000/lab">bản vuln :3000</a>.</p>' : ''}
-<div class="progress" title="Tiến độ bài lab"><div id="prog"></div></div>
-<p class="sub">Tiến độ của bạn: <b id="progtxt">0/20 bài</b> · đang hiển thị <b id="count">20</b> bài</p>
+${hardened ? '<p class="warn">⚠ Bạn đang ở bản <b>HARDENED</b> — các lỗ hổng đã vá. Payload gợi ý phải BỊ CHẶN. Khai thác thật hãy mở <a href="http://127.0.0.1:3000/lab">bản vuln :3000</a>.</p>' : ''}
+<div class="progress"><div id="prog"></div></div>
+<p class="sub">Tiến độ: <b id="progtxt">0/20 mục tiêu</b> · đang hiển thị <b id="count">20</b></p>
 <div class="filters">
   ${catBtns}
   <span style="color:#334155">|</span>
@@ -459,7 +612,7 @@ ${hardened ? '<p class="warn">⚠ Bạn đang ở bản <b>HARDENED</b> — các
   <label class="ftoggle"><input type="checkbox" id="fctf"> chỉ CTF</label>
   <input type="search" id="fsearch" placeholder="🔍 tìm theo tên / CWE / endpoint…">
 </div>
-<div class="grid">${cards}</div>
+${groups}
 <div class="panel" id="ctf">
   <h2>🏆 Nộp cờ CTF ngay tại đây</h2>
   <p class="sub">Khai thác lab → lấy <code>FLAG{...}</code> → chọn thử thách và nộp. Cờ sinh ngẫu nhiên theo phiên — đáp án không thể chép.</p>
@@ -471,9 +624,79 @@ ${hardened ? '<p class="warn">⚠ Bạn đang ở bản <b>HARDENED</b> — các
     <span id="ctfmsg" class="sub" style="align-self:center"></span>
   </div>
 </div>
-<p class="sub">📚 Giáo trình đầy đủ: <a href="https://jasontm17.github.io/Security_Lab_Study/" target="_blank" rel="noopener">SecHub Online</a> ·
-lời giải (SPOILER): <code>solutions/</code> trong repo · <a href="/">trang chủ lab</a> · <a href="/_lab/metrics">/_lab/metrics</a></p>
-</div><script>${DASH_JS}</script></body></html>`;
+<p class="sub">📚 Giáo trình: <a href="https://jasontm17.github.io/Security_Lab_Study/" target="_blank" rel="noopener">SecHub Online</a> ·
+lời giải (SPOILER): <code>solutions/</code> trong repo · <a href="/blue">🔵 Blue Team console</a> · <a href="/_lab/metrics">/_lab/metrics</a></p>
+</div><script>${RED_JS}</script></body></html>`;
+}
+
+/** Blue Team — SOC console: live request feed + alerts + defense rules (GET /blue). */
+export function renderBlueDashboard(mode, rules = []) {
+  const hardened = mode === 'hardened';
+  const ruleRows = rules
+    .map(
+      (r) => `<tr>
+<td><span class="pill ${r.severity}">${esc(r.severity.toUpperCase())}</span></td>
+<td><b>${esc(r.label)}</b><br><code>${esc(r.type)}</code></td>
+<td>${esc(r.defense)}</td>
+</tr>`
+    )
+    .join('');
+  const blueCards = LABS.map((l) => {
+    const color = CAT_META[l.cat]?.color || '#38bdf8';
+    const watch = (LAB_DETECT[l.id] || []).length
+      ? `🔎 rule: ${LAB_DETECT[l.id].map((t) => `<code>${esc(t)}</code>`).join(' ')}`
+      : '⚠ <b>telemetry mù</b> — access log không đủ, cần app-level logging';
+    return `<div class="bcard" style="--cat:${color}">
+  <h4>${l.id} · ${esc(l.title)}</h4>
+  <p class="muted">Phòng thủ: ${esc(l.hard)}</p>
+  <p class="muted">${watch}</p>
+</div>`;
+  }).join('');
+  return `<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>🔵 Blue Team — SOC Console | SecLab [${mode.toUpperCase()}]</title>
+<style>:root{--ac:#22d3ee;--ac2:#0ea5e9}${DASH_CSS}</style></head><body>
+${NAV(mode, 'blue')}
+<div class="wrap">
+<div class="hero">
+  <div class="tag">🔵 Blue Team — Security Operations</div>
+  <h1>SOC Console — nhìn attacker như defender</h1>
+  <p class="sub">Tấn công ở <a href="/lab">🔴 Red Team</a> → quay lại đây xem telemetry nói gì.
+  Feed request trực tiếp + alert từ engine <code>detect.js</code> + bộ luật phòng thủ cho từng bài.</p>
+  <div class="stats">
+    <span class="stat">📥 <b id="reqcount">—</b> request ghi nhận</span>
+    <span class="stat">🚨 <b id="alertcount">—</b> loại tấn công phát hiện</span>
+    <span class="stat">📜 <b>${rules.length}</b> detection rule</span>
+    <span class="stat">CLI: <code>node src/cli.js detect ${esc(`http://127.0.0.1:3000`)}</code></span>
+  </div>
+</div>
+${hardened ? '<p class="warn">ℹ Bản <b>HARDENED</b> — hầu hết tấn công sẽ bị chặn (400/401/403/415) nhưng request vẫn được log. So sánh feed ở hai bản!</p>' : ''}
+<div class="panel">
+  <h2><span class="live" id="livedot"></span> Live request feed <button class="ftoggle" id="pausebtn" style="float:right">⏸ Tạm dừng</button></h2>
+  <p class="sub">80 request gần nhất · làm mới mỗi 2.5s · hàng đỏ = khớp pattern nghi ngờ</p>
+  <div class="feedbox"><table class="feedtbl">
+    <thead><tr><th>giờ</th><th>method</th><th>path</th><th>ip</th><th>status</th><th>flags</th></tr></thead>
+    <tbody id="feed"><tr><td colspan="6" class="sub">Đang tải…</td></tr></tbody>
+  </table></div>
+</div>
+<div class="panel">
+  <h2>🚨 Alerts — engine phát hiện của lab</h2>
+  <p class="sub">Cùng logic <code>analyzeLog()</code> mà lệnh <code>detect</code> dùng — chạy server-side trên <code>/_lab/log</code>.</p>
+  <div id="alerts"><p class="sub">Đang tải…</p></div>
+</div>
+<div class="panel">
+  <h2>📜 Detection rules — bộ luật hiện có (${rules.length})</h2>
+  <table class="rules"><thead><tr><th>Mức</th><th>Rule</th><th>Phòng thủ tương ứng trong lab</th></tr></thead>
+  <tbody>${ruleRows}</tbody></table>
+</div>
+<div class="panel">
+  <h2>🛡 Defense checklist — 20 bài lab</h2>
+  <p class="sub">Mỗi bài: cách vá (hardened) + detection rule nào canh chừng. Bài ghi "telemetry mù" = giới hạn thật của access log.</p>
+  <div class="bluegrid">${blueCards}</div>
+</div>
+<p class="sub">📖 Đọc thêm: <code>docs/10-detection-engineering.md</code> · <code>docs/11-case-study-thuc-chien.md</code> ·
+<a href="/lab">🔴 Red Team dashboard</a> · <a href="/_lab/metrics">/_lab/metrics</a></p>
+</div><script>${BLUE_JS}</script></body></html>`;
 }
 
 /**

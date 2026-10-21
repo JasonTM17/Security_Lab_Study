@@ -125,6 +125,18 @@ const PATTERNS = [
   },
 ];
 
+// Metadata tĩnh của các rule (không kèm hàm test) — cho dashboard blue-team
+// hiển thị "bộ luật hiện có". Cập nhật thủ công khi thêm rule mới vào PATTERNS.
+export const RULES_INFO = [
+  ...PATTERNS.map((p) => ({ type: p.type, label: p.label, severity: p.severity, defense: p.defense })),
+  {
+    type: 'brute-force',
+    label: 'Brute-force đăng nhập (behavioral — đếm theo IP)',
+    severity: 'high',
+    defense: 'Rate limit per-IP + khoá tài khoản tạm thời + MFA; alert khi ≥5 lần login thất bại từ cùng IP.',
+  },
+];
+
 function hits(p) {
   const out = [];
   for (const pat of PATTERNS) {
