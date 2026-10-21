@@ -18,6 +18,11 @@
 //   LAB-13 Unrestricted Upload POST /upload + GET /uploads/:name (stored XSS qua file)
 //   LAB-14 XXE (mô phỏng)      POST /api/import  (entity → VFS ảo, an toàn tuyệt đối — CTF #7)
 //   LAB-15 Stored XSS          /guestbook  (comment render không escape)
+//   LAB-16 Prototype Pollution POST/GET /api/config  (merge không lọc __proto__ — CTF #8)
+//   LAB-17 Mass Assignment     POST /api/register    (nhận trội role=admin — CTF #9)
+//   LAB-18 Blind SQLi          /track?code=          (oracle boolean → rút cờ từng ký tự — CTF #10)
+//   LAB-19 Reset token yếu     /api/reset/*          (md5(username) dự đoán được)
+//   LAB-20 DOM-based XSS       /dom                  (location.hash → innerHTML — KHÔNG lọt vào log server!)
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { exec, execFile } from 'node:child_process';
@@ -85,6 +90,27 @@ const CHALLENGE_DEFS = [
     title: 'XXE — đọc file cờ qua XML external entity',
     points: 20,
     hint: 'POST /api/import nhận XML. Bản vuln xử lý <!ENTITY x SYSTEM "file://..."> trên filesystem ảo — thử file:///flag-xxe.txt rồi tham chiếu &x; trong <item>. Bản hardened từ chối DOCTYPE hoàn toàn.',
+  },
+  {
+    id: 8,
+    flagKey: 'proto',
+    title: 'Prototype Pollution — nhiễm Object.prototype',
+    points: 30,
+    hint: 'POST /api/config merge JSON ĐỆ QUY không lọc key nguy hiểm. Gửi {"__proto__":{"isAdmin":true}} — dst.__proto__ chính là Object.prototype nên key bị ghi xuyên vào prototype toàn cục. GET /api/config xem protoPolluted + cờ. Bản hardened lọc __proto__/constructor/prototype.',
+  },
+  {
+    id: 9,
+    flagKey: 'mass',
+    title: 'Mass Assignment — tự đăng ký tài khoản admin',
+    points: 25,
+    hint: 'POST /api/register của bản vuln copy TOÀN BỘ field client gửi — kể cả từ query string (?role=admin). Đăng ký user mới kèm role=admin, đăng nhập, rồi GET /api/me: role=admin + cờ. Bản hardened whitelist chỉ username+password.',
+  },
+  {
+    id: 10,
+    flagKey: 'blind',
+    title: 'Blind SQLi — rút cờ từng ký tự qua oracle boolean',
+    points: 40,
+    hint: "/track?code= chỉ trả found/404 — không lộ dữ liệu trực tiếp. Xác nhận oracle: code=AB-100' AND 1=1 -- (found) vs AND 1=2 -- (404). Rút từng ký tự của cờ: AB-100' AND (SELECT substr(flag,N,1) FROM ctf_blind)='X' -- với N=1,2,3...",
   },
 ];
 const TOTAL_POINTS = CHALLENGE_DEFS.reduce((s, c) => s + c.points, 0);
@@ -166,6 +192,39 @@ function parseMultipart(body, contentType) {
   return null;
 }
 
+// ---- Prototype Pollution (LAB-16) ----
+// ⚠ CHỦ ĐÍCH DỄ TỔN THƯƠNG: merge đệ quy KHÔNG lọc key. Với {"__proto__":{...}},
+// dst['__proto__'] trỏ tới Object.prototype → các key con bị GHI XUYÊN vào
+// prototype toàn cục → mọi object trong process đều "kế thừa" giá trị độc.
+function unsafeMerge(dst, src) {
+  if (!src || typeof src !== 'object') return dst;
+  for (const k of Object.keys(src)) {
+    if (src[k] && typeof src[k] === 'object') {
+      if (dst[k] === null || typeof dst[k] !== 'object') dst[k] = {};
+      unsafeMerge(dst[k], src[k]);
+    } else {
+      dst[k] = src[k];
+    }
+  }
+  return dst;
+}
+
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+// Đã vá: lọc key nguy hiểm + chỉ recurse vào OWN property (không đi theo chain).
+function safeMerge(dst, src) {
+  if (!src || typeof src !== 'object') return dst;
+  for (const k of Object.keys(src)) {
+    if (DANGEROUS_KEYS.has(k)) continue;
+    if (src[k] && typeof src[k] === 'object') {
+      if (!Object.hasOwn(dst, k) || dst[k] === null || typeof dst[k] !== 'object') dst[k] = {};
+      safeMerge(dst[k], src[k]);
+    } else {
+      dst[k] = src[k];
+    }
+  }
+  return dst;
+}
+
 const page = (title, body, mode) => `<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="color-scheme" content="dark"><title>${title} — SecLab [${mode.toUpperCase()}]</title>
 <style>:root{color-scheme:dark}html{background:#0b1220;color:#e2e8f0}
@@ -204,6 +263,8 @@ export async function createLabApp(opts = {}) {
   const jwtSecret = hardened ? randHex(32) : VULN_JWT_SECRET;
   const csrfSecret = createCsrfSecret(); // khoá phát hành CSRF token (bản hardened)
   const guestbook = []; // comment in-memory cho bài Stored XSS (cap 100)
+  const labConfig = { theme: 'dark', lang: 'vi' }; // cấu hình demo cho bài Prototype Pollution
+  const resetTokens = new Map(); // token ngẫu nhiên → { user, exp } (bản hardened)
 
   if (!hardened) {
     ctf.flags.sql = `FLAG{sqli-${randHex(6)}}`;
@@ -213,6 +274,10 @@ export async function createLabApp(opts = {}) {
     ctf.flags.cmd = `FLAG{cmd-${randHex(6)}}`;
     ctf.flags.jwt = `FLAG{jwt-${randHex(6)}}`;
     ctf.flags.xxe = `FLAG{xxe-${randHex(6)}}`;
+    ctf.flags.proto = `FLAG{proto-${randHex(6)}}`;
+    ctf.flags.mass = `FLAG{mass-${randHex(6)}}`;
+    ctf.flags.blind = `FLAG{blind-${randHex(6)}}`;
+    db.setBlindFlag(ctf.flags.blind);
     // Cờ command-injection nằm trong BIẾN MÔI TRƯỜNG của tiến trình lab —
     // chỉ đọc được bằng cách chêm lệnh vào /tools/ping (set / env).
     process.env.SECLAB_CTF_CMD = ctf.flags.cmd;
@@ -321,6 +386,11 @@ export async function createLabApp(opts = {}) {
         '<li><a href="/redirect?to=/">/redirect?to= — chuyển hướng (Open Redirect)</a></li>',
         '<li>POST /api/token → JWT · GET /api/profile — xác thực token (JWT yếu)</li>',
         '<li>POST /api/import — nhập XML (XXE mô phỏng trên filesystem ảo)</li>',
+        '<li>POST /api/config — cập nhật cấu hình JSON (Prototype Pollution)</li>',
+        '<li>POST /api/register — đăng ký tài khoản (Mass Assignment)</li>',
+        '<li><a href="/track?code=AB-100">/track?code= — tra mã vận đơn (Blind SQLi)</a></li>',
+        '<li><a href="/api/reset/request?user=alice">/api/reset/* — quên mật khẩu (reset token yếu)</a></li>',
+        '<li><a href="/dom">/dom — trang hiển thị hash (DOM-based XSS)</a></li>',
         '<li><a href="/slow">/slow — endpoint chậm 3s (demo tải)</a></li>',
         '<li><a href="/_lab/metrics">/_lab/metrics — bộ đếm request của lab</a></li>',
       ].join('\n');
@@ -408,7 +478,13 @@ export async function createLabApp(opts = {}) {
     }
 
     if (path === '/api/me' && req.method === 'GET') {
-      return json(res, 200, session ? { ...session } : { user: null });
+      const out = session ? { ...session } : { user: null };
+      // CTF #9: user TỰ ĐĂNG KÝ (id >= 100) mà role là admin → đã leo quyền qua
+      // mass assignment (alice admin thật có id=1 nên không tính).
+      if (!hardened && session && session.role === 'admin' && session.id >= 100) {
+        out.flag = ctf.flags.mass;
+      }
+      return json(res, 200, out);
     }
 
     // ---------- /download (Path Traversal trên VFS ảo) ----------
@@ -673,6 +749,137 @@ export async function createLabApp(opts = {}) {
       return res.end();
     }
 
+    // ---------- /api/config (Prototype Pollution — LAB-16) ----------
+    if (path === '/api/config' && req.method === 'POST') {
+      const raw = await readBody(req, hardened ? 8 * 1024 : vulnModeNoLimit());
+      let payload;
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        return json(res, 400, { error: 'bad_json', message: 'Body phải là JSON hợp lệ.' });
+      }
+      const merged = hardened ? safeMerge(labConfig, payload) : unsafeMerge(labConfig, payload);
+      return json(res, 200, { ok: true, config: merged });
+    }
+    if (path === '/api/config' && req.method === 'GET') {
+      // Key nhiễm vào Object.prototype trở thành ENUMERABLE → liệt kê được.
+      const polluted = Object.keys(Object.prototype);
+      const out = {
+        config: labConfig,
+        protoPolluted: polluted,
+        ghi_chu: hardened
+          ? 'safeMerge() lọc __proto__/constructor/prototype — Object.prototype sạch.'
+          : 'unsafeMerge() đi xuyên __proto__ — thử POST {"__proto__":{"isAdmin":true}} rồi GET lại endpoint này.',
+      };
+      if (!hardened && polluted.length > 0) {
+        out.flag = ctf.flags.proto;
+        out.canh_bao = `Object.prototype đang chứa key lạ: ${polluted.join(', ')} — mọi object trong process đều "kế thừa" nó. Restart lab để sạch.`;
+      }
+      return json(res, 200, out);
+    }
+
+    // ---------- /api/register (Mass Assignment — LAB-17) ----------
+    if (path === '/api/register' && req.method === 'POST') {
+      const body = parseForm(await readBody(req, hardened ? 8 * 1024 : vulnModeNoLimit()));
+      // Bản vuln còn gộp cả QUERY STRING vào field — "đọc input từ nhiều nguồn
+      // không phân biệt" khiến ?role=admin lọt vào ngay cả khi form không có field đó.
+      const fields = hardened ? body : { ...Object.fromEntries(q), ...body };
+      if (!fields.username || !fields.password) {
+        return json(res, 400, { error: 'missing_fields', message: 'Cần username + password.' });
+      }
+      if (db.findUser(fields.username)) {
+        return json(res, 409, { error: 'user_exists', message: 'Tên đăng nhập đã tồn tại.' });
+      }
+      const id = 100 + db.countUsers();
+      const newUser = hardened
+        ? // Đã vá: WHITELIST — chỉ nhận đúng field cần thiết, role gán cứng 'user'.
+          { id, name: String(fields.username).slice(0, 40), password: String(fields.password).slice(0, 64), role: 'user', email: '', apiKey: `LAB-KEY-SELF-${id}` }
+        : // ⚠ CHỦ ĐÍCH DỄ TỔN THƯƠNG: copy mọi field (role, email, apiKey... tuỳ ý).
+          { id, name: String(fields.username).slice(0, 40), password: String(fields.password).slice(0, 64), role: String(fields.role || 'user'), email: String(fields.email || ''), apiKey: `LAB-KEY-SELF-${id}` };
+      db.addUser(newUser);
+      return json(res, 201, {
+        ok: true,
+        user: { id: newUser.id, name: newUser.name, role: newUser.role },
+        huong_dan: 'Đăng nhập qua POST /login rồi xem GET /api/me.',
+        ...(hardened ? {} : { ghi_chu: 'Bản vuln copy mọi field — kể cả role. Thử: POST /api/register?role=admin' }),
+      });
+    }
+
+    // ---------- /track (Blind SQLi oracle — LAB-18) ----------
+    if (path === '/track' && req.method === 'GET') {
+      const code = String(q.get('code') || '').slice(0, 500);
+      const result = hardened ? db.trackShipmentSafe(code) : db.trackShipment(code);
+      const body = result.found
+        ? `<p>Mã vận đơn <b>${hardened ? esc(code) : code}</b>: <b>TỒN TẠI</b> trong hệ thống.</p>`
+        : `<p>Mã vận đơn <b>${hardened ? esc(code) : code}</b>: không tìm thấy.${result.error ? ' <i>(lỗi truy vấn lộ ra response!)</i>' : ''}</p>`;
+      const hint = hardened
+        ? ''
+        : `<p>Oracle boolean — thử: <code>/track?code=AB-100' AND 1=1 --</code> vs <code>AND 1=2 --</code>. Cờ nằm trong bảng <code>ctf_blind</code>, cột <code>flag</code> — rút từng ký tự bằng substr().</p>`;
+      return html(res, result.found ? 200 : 404, page('Tra cứu vận đơn', body + `<form><input name="code" value="${hardened ? esc(code) : code}" size="45"><button>Tra</button></form>` + hint, hardened ? 'hardened' : 'vuln'));
+    }
+
+    // ---------- /api/reset/* (Reset token yếu — LAB-19) ----------
+    if (path === '/api/reset/request' && req.method === 'GET') {
+      const user = String(q.get('user') || '').slice(0, 40);
+      const exists = !!db.findUser(user);
+      if (hardened) {
+        // Đã vá: token ngẫu nhiên 128-bit, lưu server-side, hết hạn 10 phút, dùng 1 lần.
+        // Thực tế token được GỬI EMAIL — lab trả về để demo (đã đánh dấu demo_token).
+        const t = crypto.randomBytes(16).toString('hex');
+        if (exists) resetTokens.set(t, { user, exp: Date.now() + 600_000 });
+        return json(res, 200, { ok: true, message: 'Nếu user tồn tại, link reset đã được "gửi email" (giả lập).', ...(exists ? { demo_token: t } : {}) });
+      }
+      // ⚠ CHỦ ĐÍCH DỄ TỔN THƯƠNG: token = md5(username)[0:12] — hoàn toàn dự
+      // đoán được, không lưu server, không hết hạn. Ai biết username là reset được.
+      const token = crypto.createHash('md5').update(user).digest('hex').slice(0, 12);
+      return json(res, 200, {
+        ok: true,
+        user,
+        token,
+        ghi_chu: 'Bản vuln: token = md5(username) cắt 12 ký tự — DỰ ĐOÁN ĐƯỢC. Tự tính md5 của "carol" rồi POST /api/reset/confirm để chiếm tài khoản.',
+      });
+    }
+    if (path === '/api/reset/confirm' && req.method === 'POST') {
+      const body = parseForm(await readBody(req, hardened ? 8 * 1024 : vulnModeNoLimit()));
+      const { user = '', token = '' } = body;
+      const newpass = String(body.newpass || 'pwned123').slice(0, 64);
+      if (!db.findUser(user)) return json(res, 404, { error: 'not_found' });
+      if (hardened) {
+        const rec = resetTokens.get(token);
+        if (!rec || rec.exp < Date.now() || rec.user !== user) {
+          return json(res, 403, { error: 'invalid_token', message: 'Token sai, hết hạn hoặc đã dùng.' });
+        }
+        resetTokens.delete(token); // one-time use
+      } else {
+        const expect = crypto.createHash('md5').update(user).digest('hex').slice(0, 12);
+        if (token !== expect) {
+          return json(res, 403, { error: 'invalid_token', ghi_chu: 'Gợi ý: token = md5(username)[0:12].' });
+        }
+      }
+      db.setPassword(user, newpass);
+      return json(res, 200, { ok: true, message: `Đã đổi mật khẩu của ${esc(user)} → "${esc(newpass)}". Đăng nhập thử qua /login hoặc POST /api/token.` });
+    }
+
+    // ---------- /dom (DOM-based XSS — LAB-20) ----------
+    if (path === '/dom' && req.method === 'GET') {
+      // ĐIỂM ĐẶC BIỆT: payload nằm trong location.hash — phần sau dấu # KHÔNG BAO
+      // GIỜ được gửi lên server → không xuất hiện trong access log → detect/
+      // WAF/logs không nhìn thấy. Đây là lý do DOM XSS khó phát hiện phía server.
+      const sink = hardened ? 'textContent' : 'innerHTML';
+      const body = `
+        <p>Trang này đọc <code>location.hash</code> (phần sau dấu #) và render bằng
+        <code>${sink}</code>. Payload KHÔNG lên tới server — XSS hoàn toàn phía client.</p>
+        <div id="out" style="border:1px solid #334155;padding:12px;min-height:40px"></div>
+        ${hardened
+          ? '<p>Đã vá: <code>textContent</code> chỉ chèn TEXT — markup hiển thị nguyên văn, không chạy.</p>'
+          : '<p>Thử: <a href="/dom#&lt;img%20src=x%20onerror=alert(document.domain)&gt;">/dom#&lt;img src=x onerror=alert(document.domain)&gt;</a> — innerHTML thực thi markup độc.</p>'}
+        <script>
+          document.getElementById('out').${sink} =
+            decodeURIComponent(location.hash.slice(1) || '(hash rỗng — thêm #nội-dung vào URL)');
+        </script>`;
+      return html(res, 200, page('DOM XSS demo', body, hardened ? 'hardened' : 'vuln'));
+    }
+
     // ---------- /_lab/metrics ----------
     if (path === '/_lab/metrics' && req.method === 'GET') {
       return json(res, 200, { ...metrics, mode: hardened ? 'hardened' : 'vuln' });
@@ -709,7 +916,7 @@ export async function createLabApp(opts = {}) {
         crypto.timingSafeEqual(Buffer.from(flag), Buffer.from(expected));
       if (okFlag) ctf.solved.add(id);
       ctf.score = [...ctf.solved].reduce((s, cid) => s + (CHALLENGE_DEFS.find((c) => c.id === cid)?.points || 0), 0);
-      return json(res, 200, { ok: okFlag, challenge: def.id, solved: [...ctf.solved], score: ctf.score, total: TOTAL_POINTS });
+      return json(res, 200, { ok: okFlag, challenge: def.id, solved: [...ctf.solved], score: ctf.score, total: TOTAL_POINTS, count: CHALLENGE_DEFS.length });
     }
 
     // ---------- /files/ — directory listing (chỉ bản vuln) ----------
