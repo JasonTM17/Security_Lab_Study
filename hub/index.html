@@ -110,6 +110,7 @@
     <a href="#chuong-07">07 Pháp lý &amp; Đạo đức nghề nghiệp tại Việt Nam</a>
     <a href="#chuong-08">08Lộ trình Học 12 tháng &amp; Thực hành Hợp pháp</a>
     <a href="#chuong-09">Cheat sheet lệnh &amp; quy trình làm việc</a>
+    <a href="#chuong-10">Chọn bài LAB — Catalog 20 lỗ hổng</a>
   </nav>
   <main>
     <section class="topic" id="chuong-01">
@@ -932,6 +933,195 @@ npm test &amp;&amp; npm run e2e                                 <span class="cmt
     <li>Trước khi kết luận bất kỳ điều gì: <code>npm test</code> và <code>npm run e2e</code> phải xanh — đó là hai gate của chính bộ công cụ này.</li>
   </ul>
 </div>
+</section>
+<section class="topic" id="chuong-10">
+<h2><span class="num">10</span> · Chọn bài LAB — Catalog 20 lỗ hổng thực hành</h2>
+
+<p>Đây là <strong>bản đồ đầy đủ 20 bài lab</strong> của SecLab — mỗi bài gồm endpoint tương ứng, mục tiêu khai thác, thử thách CTF liên quan và file bài tập đi kèm. Khi chạy lab thật (<code>npm run serve</code>), cùng catalog này xuất hiện dưới dạng <strong>dashboard tương tác</strong> tại <code>http://127.0.0.1:3000/lab</code> — có lọc theo nhóm/độ khó, tìm kiếm, theo tiến độ làm bài (lưu trình duyệt) và nộp cờ CTF trực tiếp.</p>
+
+<div class="card danger">
+<h4>⚠️ Nhắc lại ranh giới</h4>
+<p>Mọi endpoint dưới đây chỉ tồn tại trên <code>127.0.0.1</code> của máy bạn. Đừng bao giờ thử payload này trên website người khác — <strong>Điều 287 BLHS 2015</strong>.</p>
+</div>
+
+
+<h3>Injection <small>(4 bài)</small></h3>
+<table>
+<thead><tr><th>Bài</th><th>Lỗ hổng</th><th>Endpoint</th><th>Mục tiêu</th><th>CTF</th><th>Bài tập</th></tr></thead>
+<tbody><tr>
+<td><b>LAB-01</b><br>★★</td>
+<td><b>SQL Injection — đăng nhập &amp; tìm kiếm</b><br><small>SQL Injection · CWE-89</small></td>
+<td><code>GET /search?q=alice</code><br><code>POST /login</code></td>
+<td>Dump toàn bộ bảng users qua LIKE, hoặc bypass đăng nhập không cần mật khẩu.</td>
+<td>🏆 CTF #1 · 30đ</td>
+<td><code>exercises/04-tan-cong-lab.md</code></td>
+</tr><tr>
+<td><b>LAB-09</b><br>★★</td>
+<td><b>OS Command Injection — ping chêm lệnh</b><br><small>OS Command Injection · CWE-78</small></td>
+<td><code>GET /tools/ping?host=127.0.0.1</code></td>
+<td>Nối lệnh sau host bằng &amp; / ; → chạy lệnh tự do; cờ trong biến môi trường SECLAB_CTF_CMD.</td>
+<td>🏆 CTF #5 · 25đ</td>
+<td><code>exercises/10-command-injection.md</code></td>
+</tr><tr>
+<td><b>LAB-14</b><br>★★</td>
+<td><b>XXE — entity đọc file (mô phỏng trên VFS)</b><br><small>XML External Entity · CWE-611</small></td>
+<td><code>POST /api/import</code></td>
+<td>&lt;!ENTITY x SYSTEM &quot;file:///flag-xxe.txt&quot;&gt; → nội dung file nằm trong response.</td>
+<td>🏆 CTF #7 · 20đ</td>
+<td><code>exercises/13-upload-xxe-stored-xss.md</code></td>
+</tr><tr>
+<td><b>LAB-18</b><br>★★★</td>
+<td><b>Blind SQLi — oracle boolean 200/404</b><br><small>Blind SQL Injection · CWE-89</small></td>
+<td><code>GET /track?code=AB-100</code></td>
+<td>Rút cờ từng ký tự từ bảng ẩn ctf_blind bằng substr() qua oracle 200/404 — thử thách khó nhất.</td>
+<td>🏆 CTF #10 · 40đ</td>
+<td><code>exercises/15-blind-sqli.md</code></td>
+</tr></tbody>
+</table>
+
+<h3>XSS <small>(3 bài)</small></h3>
+<table>
+<thead><tr><th>Bài</th><th>Lỗ hổng</th><th>Endpoint</th><th>Mục tiêu</th><th>CTF</th><th>Bài tập</th></tr></thead>
+<tbody><tr>
+<td><b>LAB-02</b><br>★</td>
+<td><b>Reflected XSS — input in lại nguyên văn</b><br><small>Reflected Cross-Site Scripting · CWE-79</small></td>
+<td><code>GET /search?q=&lt;svg/onload=alert(1)&gt;</code><br><code>GET /trang-khong-co-&lt;script&gt;alert(1)&lt;/script&gt;</code></td>
+<td>Chèn markup/script chạy trong trình duyệt — cả trang kết quả lẫn 404.</td>
+<td>—</td>
+<td><code>exercises/04-tan-cong-lab.md</code></td>
+</tr><tr>
+<td><b>LAB-15</b><br>★</td>
+<td><b>Stored XSS — comment lưu trên server</b><br><small>Stored Cross-Site Scripting · CWE-79</small></td>
+<td><code>GET /guestbook</code><br><code>POST /guestbook</code></td>
+<td>Post &lt;svg/onload=...&gt; → mọi visitor mở /guestbook đều chạy — nguy hiểm hơn reflected vì không cần lừa click.</td>
+<td>—</td>
+<td><code>exercises/13-upload-xxe-stored-xss.md</code></td>
+</tr><tr>
+<td><b>LAB-20</b><br>★★</td>
+<td><b>DOM-based XSS — location.hash → innerHTML</b><br><small>DOM-based XSS · CWE-79</small></td>
+<td><code>GET /dom</code></td>
+<td>Mở /dom#&lt;svg onload=alert(1)&gt; — payload trong fragment KHÔNG bao giờ lên server (telemetry mù).</td>
+<td>—</td>
+<td><code>exercises/16-reset-token-va-dom-xss.md</code></td>
+</tr></tbody>
+</table>
+
+<h3>Truy cập &amp; File <small>(4 bài)</small></h3>
+<table>
+<thead><tr><th>Bài</th><th>Lỗ hổng</th><th>Endpoint</th><th>Mục tiêu</th><th>CTF</th><th>Bài tập</th></tr></thead>
+<tbody><tr>
+<td><b>LAB-03</b><br>★</td>
+<td><b>IDOR — đọc hồ sơ người khác qua id</b><br><small>Insecure Direct Object Reference · CWE-639</small></td>
+<td><code>GET /api/users/4</code></td>
+<td>Không đăng nhập vẫn đọc apiKey (chính là cờ CTF) của dave id=4.</td>
+<td>🏆 CTF #3 · 25đ</td>
+<td><code>exercises/04-tan-cong-lab.md</code></td>
+</tr><tr>
+<td><b>LAB-04</b><br>★</td>
+<td><b>Path Traversal — leo ra ngoài files/</b><br><small>Path Traversal / LFI · CWE-22</small></td>
+<td><code>GET /files</code><br><code>GET /download?name=readme.txt</code></td>
+<td>Đọc flag-ctf.txt ở GỐC filesystem ảo — file không xuất hiện trong listing.</td>
+<td>🏆 CTF #2 · 25đ</td>
+<td><code>exercises/04-tan-cong-lab.md</code></td>
+</tr><tr>
+<td><b>LAB-07</b><br>★</td>
+<td><b>Thiếu kiểm soát truy cập — /admin mở toang</b><br><small>Broken Access Control · CWE-862</small></td>
+<td><code>GET /admin</code></td>
+<td>Mở /admin không đăng nhập — cờ CTF #4 hiện ngay trên trang.</td>
+<td>🏆 CTF #4 · 20đ</td>
+<td><code>exercises/04-tan-cong-lab.md</code></td>
+</tr><tr>
+<td><b>LAB-13</b><br>★★</td>
+<td><b>Unrestricted Upload — tải .html chạy script</b><br><small>Unrestricted File Upload · CWE-434</small></td>
+<td><code>POST /upload</code><br><code>GET /uploads/:name</code></td>
+<td>Upload file .html chứa &lt;script&gt; rồi mở /uploads/x.html — script chạy cùng origin.</td>
+<td>—</td>
+<td><code>exercises/13-upload-xxe-stored-xss.md</code></td>
+</tr></tbody>
+</table>
+
+<h3>Xác thực &amp; Phiên <small>(3 bài)</small></h3>
+<table>
+<thead><tr><th>Bài</th><th>Lỗ hổng</th><th>Endpoint</th><th>Mục tiêu</th><th>CTF</th><th>Bài tập</th></tr></thead>
+<tbody><tr>
+<td><b>LAB-10</b><br>★★</td>
+<td><b>CSRF — đổi email không token</b><br><small>Cross-Site Request Forgery · CWE-352</small></td>
+<td><code>POST /settings/email</code></td>
+<td>Đăng nhập rồi POST đổi email từ Origin lạ không kèm CSRF token → vẫn 200.</td>
+<td>—</td>
+<td><code>exercises/12-csrf-va-redirect.md</code></td>
+</tr><tr>
+<td><b>LAB-11</b><br>★★</td>
+<td><b>JWT yếu — secret123 + alg=none</b><br><small>Weak JWT · CWE-347/327</small></td>
+<td><code>POST /api/token</code><br><code>GET /api/profile</code></td>
+<td>Forge token sub=ctfsvc (không tồn tại trong DB) → /api/profile trả cờ.</td>
+<td>🏆 CTF #6 · 25đ</td>
+<td><code>exercises/11-jwt.md</code></td>
+</tr><tr>
+<td><b>LAB-19</b><br>★★</td>
+<td><b>Reset token đoán được — md5(username)</b><br><small>Predictable Reset Token · CWE-330</small></td>
+<td><code>POST /api/reset/request</code><br><code>POST /api/reset/confirm</code></td>
+<td>Token = md5(username)[0:12] → tự tính token của dave, đổi pass, login chiếm account.</td>
+<td>—</td>
+<td><code>exercises/16-reset-token-va-dom-xss.md</code></td>
+</tr></tbody>
+</table>
+
+<h3>Cấu hình &amp; Hardening <small>(4 bài)</small></h3>
+<table>
+<thead><tr><th>Bài</th><th>Lỗ hổng</th><th>Endpoint</th><th>Mục tiêu</th><th>CTF</th><th>Bài tập</th></tr></thead>
+<tbody><tr>
+<td><b>LAB-05</b><br>★</td>
+<td><b>Thiếu security headers &amp; cookie flags</b><br><small>Security Misconfiguration · CWE-693/1004</small></td>
+<td><code>GET /</code></td>
+<td>Quan sát: không CSP, X-Frame-Options, X-Content-Type-Options; cookie session không HttpOnly/SameSite/Secure.</td>
+<td>—</td>
+<td><code>exercises/06-phong-thu-va-bao-cao.md</code></td>
+</tr><tr>
+<td><b>LAB-06</b><br>★★</td>
+<td><b>Thiếu rate limiting — brute force tự do</b><br><small>Missing Rate Limit · CWE-307</small></td>
+<td><code>POST /login</code><br><code>GET /slow</code></td>
+<td>Bắn hàng chục request/login sai liên tiếp — vuln không hề chặn.</td>
+<td>—</td>
+<td><code>exercises/05-mo-phong-tai-va-slowloris.md</code></td>
+</tr><tr>
+<td><b>LAB-08</b><br>★★</td>
+<td><b>Verbose error — lộ stack trace &amp; đường dẫn</b><br><small>Verbose Error Disclosure · CWE-209</small></td>
+<td><code>GET /search?q=&#39;</code><br><code>GET /crash</code></td>
+<td>Đọc thông báo lỗi SQL + stack trace → lộ cấu trúc bảng, framework, đường dẫn file.</td>
+<td>—</td>
+<td><code>exercises/06-phong-thu-va-bao-cao.md</code></td>
+</tr><tr>
+<td><b>LAB-12</b><br>★</td>
+<td><b>Open Redirect — tin Location thô</b><br><small>Unvalidated Redirect · CWE-601</small></td>
+<td><code>GET /redirect?to=/</code></td>
+<td>to=https://evil.example → 302 thẳng ra domain ngoài — bệ phóng phishing.</td>
+<td>—</td>
+<td><code>exercises/12-csrf-va-redirect.md</code></td>
+</tr></tbody>
+</table>
+
+<h3>Logic nâng cao <small>(2 bài)</small></h3>
+<table>
+<thead><tr><th>Bài</th><th>Lỗ hổng</th><th>Endpoint</th><th>Mục tiêu</th><th>CTF</th><th>Bài tập</th></tr></thead>
+<tbody><tr>
+<td><b>LAB-16</b><br>★★★</td>
+<td><b>Prototype Pollution — merge nhiễm __proto__</b><br><small>Prototype Pollution · CWE-1321</small></td>
+<td><code>POST /api/config</code><br><code>GET /api/config</code></td>
+<td>{&quot;__proto__&quot;:{&quot;isAdmin&quot;:true}} → nhiễm Object.prototype → cờ lộ ở GET.</td>
+<td>🏆 CTF #8 · 30đ</td>
+<td><code>exercises/14-prototype-pollution-va-mass-assignment.md</code></td>
+</tr><tr>
+<td><b>LAB-17</b><br>★★★</td>
+<td><b>Mass Assignment — tự gán role=admin</b><br><small>Mass Assignment · CWE-915</small></td>
+<td><code>POST /api/register</code><br><code>GET /api/me</code></td>
+<td>Đăng ký kèm ?role=admin → login → /api/me role=admin + cờ.</td>
+<td>🏆 CTF #9 · 25đ</td>
+<td><code>exercises/14-prototype-pollution-va-mass-assignment.md</code></td>
+</tr></tbody>
+</table>
+
+<p><em>Lời giải chi tiết (SPOILER — chỉ đối chiếu sau khi tự làm): <code>solutions/</code> trong repo — writeup 10 CTF + answer key 17 bài tập + solver 4 ngôn ngữ.</em></p>
 </section>
   </main>
 </div>
