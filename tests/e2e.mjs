@@ -311,11 +311,11 @@ group('D. Rate limiting (lab hardened instance RIÊNG — không nhiễm test kh
 group('F. Tính năng đặc biệt: CTF + log blue-team');
 {
   const iso = await startLab('vuln');
-  await check('F1. /_lab/challenges: bật, 7 thử thách, tổng 170 điểm', async () => {
+  await check('F1. /_lab/challenges: bật, 10 thử thách, tổng 265 điểm', async () => {
     const j = await (await get(iso, '/_lab/challenges')).json();
     assert.equal(j.enabled, true);
-    assert.equal(j.challenges.length, 7);
-    assert.equal(j.total, 170);
+    assert.equal(j.challenges.length, 10);
+    assert.equal(j.total, 265);
   });
   await check('F2. SQLi dump lộ cờ sqli trong email người dùng ẩn', async () => {
     const t = await (await get(iso, `/search?q=${encodeURIComponent(SLQI_PAYLOAD)}`)).text();
@@ -427,6 +427,54 @@ group('G. Lỗ hổng mở rộng (LAB-09..15) — đối chứng vuln/hardened'
       body: 'email=pwn@evil.example',
     });
     assert.equal(h.status, 403);
+  });
+}
+
+// ===========================================================================
+group('H. Lỗ hổng nâng cao (LAB-16..20) — đối chứng vuln/hardened');
+{
+  await check('H1. Proto pollution: vuln nhiễm prototype, hardened lọc sạch', async () => {
+    await fetch(vuln + '/api/config', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: '{"__proto__":{"isAdmin":true}}',
+    });
+    assert.equal({}.isAdmin, true);
+    delete Object.prototype.isAdmin;
+    await fetch(hard + '/api/config', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: '{"__proto__":{"isAdmin":true}}',
+    });
+    assert.equal({}.isAdmin, undefined);
+  });
+  await check('H2. Mass assignment: vuln nhận role=admin, hardened ép role=user', async () => {
+    const v = await (await postForm(vuln, '/api/register?role=admin', { username: 'h_vuln', password: 'pw12345' })).json();
+    assert.equal(v.user.role, 'admin');
+    const h = await (await postForm(hard, '/api/register?role=admin', { username: 'h_hard', password: 'pw12345' })).json();
+    assert.equal(h.user.role, 'user');
+  });
+  await check('H3. Blind SQLi: oracle boolean 200/404 ở vuln, hardened 404', async () => {
+    const yes = await get(vuln, `/track?code=${encodeURIComponent("AB-100' AND 1=1 --")}`);
+    const no = await get(vuln, `/track?code=${encodeURIComponent("AB-100' AND 1=2 --")}`);
+    assert.equal(yes.status, 200);
+    assert.match(await yes.text(), /TỒN TẠI/);
+    assert.equal(no.status, 404);
+    assert.equal((await get(hard, `/track?code=${encodeURIComponent("AB-100' AND 1=1 --")}`)).status, 404);
+  });
+  await check('H4. Reset token: vuln = md5 đoán được, hardened random + one-time', async () => {
+    const crypto = await import('node:crypto');
+    const guess = crypto.createHash('md5').update('dave').digest('hex').slice(0, 12);
+    const v = await (await postForm(vuln, '/api/reset/confirm', { user: 'dave', token: guess, newpass: 'pwned88' })).json();
+    assert.equal(v.ok, true);
+    const req = await (await get(hard, '/api/reset/request?user=carol')).json();
+    assert.match(req.demo_token, /^[0-9a-f]{32}$/);
+    assert.equal((await postForm(hard, '/api/reset/confirm', { user: 'carol', token: 'x'.repeat(32), newpass: 'y' })).status, 403);
+  });
+  await check('H5. DOM XSS: vuln render hash bằng innerHTML, hardened textContent', async () => {
+    const v = await (await get(vuln, '/dom')).text();
+    assert.match(v, /innerHTML\s*=\s*decodeURIComponent/);
+    const h = await (await get(hard, '/dom')).text();
+    assert.match(h, /textContent/);
+    assert.ok(!/innerHTML\s*=\s*decodeURIComponent/.test(h));
   });
 }
 

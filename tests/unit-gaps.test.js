@@ -264,10 +264,10 @@ test('vulnscan runScan: dải riêng không có cờ sở hữu → SecurityErro
   await assert.rejects(() => runScan('http://192.168.1.50:3000'), SecurityError);
 });
 
-test('vulnscan CHECKS: đủ 14 probe, id duy nhất, mỗi probe là hàm', () => {
+test('vulnscan CHECKS: đủ 19 probe, id duy nhất, mỗi probe là hàm', () => {
   assert.deepEqual(
     CHECKS.map((c) => c.id),
-    ['HDR', 'CKI', 'SQLI', 'XSS', 'SXSS', 'IDOR', 'PATH', 'CMDI', 'CSRF', 'JWT', 'OREDIR', 'UPLOAD', 'XXE', 'RPS']
+    ['HDR', 'CKI', 'SQLI', 'XSS', 'SXSS', 'IDOR', 'PATH', 'CMDI', 'CSRF', 'JWT', 'OREDIR', 'UPLOAD', 'XXE', 'PROTO', 'MASS', 'BLIND', 'RESET', 'DOMXSS', 'RPS']
   );
   const ids = new Set(CHECKS.map((c) => c.id));
   assert.equal(ids.size, CHECKS.length);

