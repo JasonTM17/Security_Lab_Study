@@ -311,11 +311,11 @@ group('D. Rate limiting (lab hardened instance RIÊNG — không nhiễm test kh
 group('F. Tính năng đặc biệt: CTF + log blue-team');
 {
   const iso = await startLab('vuln');
-  await check('F1. /_lab/challenges: bật, 4 thử thách, tổng 100 điểm', async () => {
+  await check('F1. /_lab/challenges: bật, 7 thử thách, tổng 170 điểm', async () => {
     const j = await (await get(iso, '/_lab/challenges')).json();
     assert.equal(j.enabled, true);
-    assert.equal(j.challenges.length, 4);
-    assert.equal(j.total, 100);
+    assert.equal(j.challenges.length, 7);
+    assert.equal(j.total, 170);
   });
   await check('F2. SQLi dump lộ cờ sqli trong email người dùng ẩn', async () => {
     const t = await (await get(iso, `/search?q=${encodeURIComponent(SLQI_PAYLOAD)}`)).text();
@@ -357,6 +357,76 @@ group('F. Tính năng đặc biệt: CTF + log blue-team');
     assert.equal((await get(isoH, '/_lab/verify?id=1&flag=FLAG{sqli-x}')).status, 403);
     const admin = await (await get(isoH, '/admin')).text();
     assert.ok(!admin.includes('FLAG{'));
+  });
+}
+
+// ===========================================================================
+group('G. Lỗ hổng mở rộng (LAB-09..15) — đối chứng vuln/hardened');
+{
+  const sep = process.platform === 'win32' ? '&' : ';';
+  const CMDI_PAYLOAD = `127.0.0.1 ${sep} echo SECLABCMDI7`;
+  const XXE_BODY = '<!DOCTYPE r [<!ENTITY x SYSTEM "file:///secrets.txt">]><i><item>&x;</item></i>';
+
+  await check('G1. CMDI: vuln thực thi lệnh chêm, hardened 400', async () => {
+    const v = await (await get(vuln, `/tools/ping?host=${encodeURIComponent(CMDI_PAYLOAD)}`)).text();
+    assert.match(v, /SECLABCMDI7/);
+    assert.equal((await get(hard, `/tools/ping?host=${encodeURIComponent(CMDI_PAYLOAD)}`)).status, 400);
+  });
+  await check('G2. JWT: vuln nhận alg=none của ctfsvc, hardened 401', async () => {
+    const { jwtSign } = await import('../src/lab/jwtx.js');
+    const forged = jwtSign({ sub: 'ctfsvc', role: 'svc' }, '', { alg: 'none' });
+    const v = await (await get(vuln, '/api/profile?token=' + encodeURIComponent(forged))).json();
+    assert.match(v.flag || '', /FLAG\{jwt-/);
+    assert.equal((await get(hard, '/api/profile?token=' + encodeURIComponent(forged))).status, 401);
+  });
+  await check('G3. JWT: vuln nhận token ký bằng secret yếu secret123', async () => {
+    const { jwtSign } = await import('../src/lab/jwtx.js');
+    const forged = jwtSign({ sub: 'ctfsvc' }, 'secret123');
+    const v = await (await get(vuln, '/api/profile?token=' + encodeURIComponent(forged))).json();
+    assert.match(v.flag || '', /FLAG\{jwt-/);
+  });
+  await check('G4. Open redirect: vuln 302 tới domain ngoài, hardened 400', async () => {
+    const v = await get(vuln, '/redirect?to=' + encodeURIComponent('https://example.com'));
+    assert.equal(v.status, 302);
+    assert.match(v.headers.get('location') || '', /example\.com/);
+    assert.equal((await get(hard, '/redirect?to=' + encodeURIComponent('https://example.com'))).status, 400);
+  });
+  await check('G5. Upload: vuln nhận .html và phục vụ text/html, hardened 415', async () => {
+    await postForm(vuln, '/upload', { name: 'e2e-poc.html', content: '<script>alert(1)</script>' });
+    const served = await get(vuln, '/uploads/e2e-poc.html');
+    assert.match(served.headers.get('content-type') || '', /text\/html/);
+    assert.equal((await postForm(hard, '/upload', { name: 'e2e-poc.html', content: 'x' })).status, 415);
+  });
+  await check('G6. XXE: vuln resolve entity → LAB_SECRET, hardened 400', async () => {
+    const v = await (await fetch(vuln + '/api/import', { method: 'POST', body: XXE_BODY })).json();
+    assert.match(v.items[0], /LAB_SECRET/);
+    assert.equal((await fetch(hard + '/api/import', { method: 'POST', body: XXE_BODY })).status, 400);
+  });
+  await check('G7. Stored XSS: guestbook vuln render raw, hardened escape', async () => {
+    const marker = '<svg/onload=alert(7)>';
+    await postForm(vuln, '/guestbook', { msg: marker });
+    assert.match(await (await get(vuln, '/guestbook')).text(), /<svg\/onload=alert\(7\)>/);
+    await postForm(hard, '/guestbook', { msg: marker });
+    const h = await (await get(hard, '/guestbook')).text();
+    assert.ok(!h.includes(marker) && h.includes('&lt;svg'));
+  });
+  await check('G8. CSRF: vuln chấp nhận POST không token + Origin lạ, hardened 403', async () => {
+    const loginV = await postForm(vuln, '/login', { username: 'carol', password: 'carol90ab' });
+    const sidV = (loginV.headers.get('set-cookie') || '').match(/session=([a-f0-9]+)/)?.[1];
+    const v = await fetch(vuln + '/settings/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', Cookie: `session=${sidV}`, Origin: 'https://evil.example' },
+      body: 'email=pwn@evil.example',
+    });
+    assert.equal(v.status, 200);
+    const loginH = await postForm(hard, '/login', { username: 'carol', password: 'carol90ab' });
+    const sidH = (loginH.headers.get('set-cookie') || '').match(/session=([a-f0-9]+)/)?.[1];
+    const h = await fetch(hard + '/settings/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', Cookie: `session=${sidH}` },
+      body: 'email=pwn@evil.example',
+    });
+    assert.equal(h.status, 403);
   });
 }
 
