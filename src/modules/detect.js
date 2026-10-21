@@ -53,6 +53,45 @@ const PATTERNS = [
     test: (p) => /secrets?\.|\.bak|\.sql|\.git\/|backup|dump|id_rsa/i.test(p),
     defense: 'Không để file nhạy cảm trong webroot; VFS lab đặt cờ ngoài vùng liệt kê — bản hardened chặn traversal nên không đọc được.',
   },
+  {
+    type: 'cmdinj',
+    label: 'Command injection probe',
+    severity: 'high',
+    test: (p) =>
+      /\/tools\/ping/i.test(p) &&
+      /(%26|%7[cC]|%3[bB]|%60|%24%28|%24|&amp|; *%20)|whoami|ipconfig|ifconfig|\bset\b|\benv\b|\bcat\b|\bdir\b|\btype\b|\bls\b|\bcurl\b|\bwget\b|\bnc\b/i.test(
+        p
+      ),
+    defense: 'execFile + whitelist input (bản hardened 400); alert khi thấy shell metachar trong query của endpoint chẩn đoán.',
+  },
+  {
+    type: 'open-redir',
+    label: 'Open redirect abuse',
+    severity: 'medium',
+    test: (p) => /\/redirect/i.test(p) && /to=(https?%3a|https?:\/\/|\/\/)/i.test(p),
+    defense: 'Whitelist đích chuyển hướng / chỉ cho phép path nội bộ (bản hardened 400); log & cảnh báo domain ngoài.',
+  },
+  {
+    type: 'xxe',
+    label: 'XXE probe / entity injection',
+    severity: 'high',
+    testEntry: (e) => e.method === 'POST' && /\/api\/import/i.test(e.path),
+    defense: 'Tắt DTD/external entity ở parser (bản hardened: dtd_prohibited); giám sát endpoint nhận XML.',
+  },
+  {
+    type: 'upload-abuse',
+    label: 'Upload đáng ngờ',
+    severity: 'medium',
+    testEntry: (e) => e.method === 'POST' && /\/upload/i.test(e.path),
+    defense: 'Whitelist extension + quét nội dung + phục vụ file qua domain riêng/text-plain (bản hardened 415).',
+  },
+  {
+    type: 'jwt-probe',
+    label: 'Thao túng token / dò JWT endpoint',
+    severity: 'medium',
+    test: (p) => /\/api\/(token|profile)/i.test(p),
+    defense: 'Log lượt phát hành/xác minh token; reject alg=none; khoá HMAC mạnh; alert khi một IP thử nhiều token khác nhau.',
+  },
 ];
 
 function hits(p) {
@@ -60,7 +99,8 @@ function hits(p) {
   for (const pat of PATTERNS) {
     const byPath = pat.test ? pat.test(p.path) : false;
     const byUA = pat.testUA ? pat.testUA(p.ua) : false;
-    if (byPath || byUA) out.push(pat);
+    const byEntry = pat.testEntry ? pat.testEntry(p) : false;
+    if (byPath || byUA || byEntry) out.push(pat);
   }
   return out;
 }
@@ -71,8 +111,15 @@ function hits(p) {
  */
 export function analyzeLog(log) {
   const findings = new Map(); // type -> { type, label, severity, count, samples: [], defense }
-  for (const entry of Array.isArray(log) ? log : []) {
-    const p = { path: String(entry.path || ''), ua: String(entry.ua || ''), t: entry.t };
+  const entries = Array.isArray(log) ? log : [];
+  for (const entry of entries) {
+    const p = {
+      path: String(entry.path || ''),
+      ua: String(entry.ua || ''),
+      t: entry.t,
+      method: String(entry.method || 'GET'),
+      ip: String(entry.ip || ''),
+    };
     for (const pat of hits(p)) {
       if (!findings.has(pat.type)) {
         findings.set(pat.type, { type: pat.type, label: pat.label, severity: pat.severity, count: 0, samples: [], defense: pat.defense });
@@ -82,6 +129,28 @@ export function analyzeLog(log) {
       if (f.samples.length < 3) f.samples.push(p.path.slice(0, 160) || `(UA: ${p.ua.slice(0, 60)})`);
     }
   }
+
+  // Brute-force: một IP POST /login ≥5 lần → dò mật khẩu.
+  const triesByIp = new Map();
+  for (const e of entries) {
+    if (String(e.method) === 'POST' && String(e.path || '').startsWith('/login')) {
+      const ip = String(e.ip || '?');
+      triesByIp.set(ip, (triesByIp.get(ip) || 0) + 1);
+    }
+  }
+  for (const [ip, n] of triesByIp) {
+    if (n >= 5) {
+      findings.set('brute-force', {
+        type: 'brute-force',
+        label: 'Brute-force đăng nhập',
+        severity: 'high',
+        count: n,
+        samples: [`POST /login ×${n} từ ${ip}`],
+        defense: 'Rate limit per-IP + khoá tài khoản tạm thời + MFA; alert khi ≥5 lần login thất bại từ cùng IP.',
+      });
+    }
+  }
+
   const list = [...findings.values()].sort((a, b) => {
     const sev = { high: 0, medium: 1, low: 2 };
     return sev[a.severity] - sev[b.severity] || b.count - a.count;
