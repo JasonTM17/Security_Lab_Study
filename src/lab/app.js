@@ -117,7 +117,7 @@ const TOTAL_POINTS = CHALLENGE_DEFS.reduce((s, c) => s + c.points, 0);
 
 export { esc } from './html.js';
 import { esc } from './html.js';
-import { renderDashboard, renderBlueDashboard } from './dashboard.js';
+import { renderDashboard, renderBlueDashboard, DASH_CSS, RED_JS, BLUE_JS } from './dashboard.js';
 import { analyzeLog, RULES_INFO } from '../modules/detect.js';
 
 function send(res, status, body, headers = {}) {
@@ -371,6 +371,16 @@ export async function createLabApp(opts = {}) {
     const session = cookies.session ? sessions.get(cookies.session) : undefined;
 
     // ---------- /lab — Dashboard Red Team (chọn mục tiêu) ----------
+    // Asset tách riêng: CSP hardened (script-src/style-src 'self') cấm inline.
+    if (path === '/_lab/dash.css' && req.method === 'GET') {
+      return send(res, 200, DASH_CSS, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store' });
+    }
+    if (path === '/_lab/dash-red.js' && req.method === 'GET') {
+      return send(res, 200, RED_JS, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+    }
+    if (path === '/_lab/dash-blue.js' && req.method === 'GET') {
+      return send(res, 200, BLUE_JS, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+    }
     if (path === '/lab' && req.method === 'GET') {
       return html(res, 200, renderDashboard(hardened ? 'hardened' : 'vuln'));
     }

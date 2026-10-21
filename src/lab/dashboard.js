@@ -305,13 +305,12 @@ function renderCard(lab, { interactive = true } = {}) {
   const ctf = lab.ctf
     ? `<span class="chip ctf">🏆 CTF #${lab.ctf.id} · ${lab.ctf.pts}đ</span>`
     : '';
-  const color = CAT_META[lab.cat]?.color || '#334155';
   return `
-<article class="card" style="--cat:${color}" data-cat="${lab.cat}" data-diff="${lab.diff}" data-ctf="${lab.ctf ? 1 : 0}" id="${lab.id.toLowerCase()}">
+<article class="card c-${lab.cat}" data-cat="${lab.cat}" data-diff="${lab.diff}" data-ctf="${lab.ctf ? 1 : 0}" id="${lab.id.toLowerCase()}">
   <header>
     <span class="labid">${lab.id}</span>
     <span class="stars" title="${DIFFS[lab.diff]}">${DIFF_STARS[lab.diff - 1]}</span>
-    <span class="chip cat" style="border-color:${color};color:${color}">${esc(cat)}</span>
+    <span class="chip cat">${esc(cat)}</span>
     ${ctf}
   </header>
   <h3>${esc(lab.title)}</h3>
@@ -328,7 +327,8 @@ function renderCard(lab, { interactive = true } = {}) {
 }
 
 // ─── Theme chung cho cả hai dashboard — mỗi team một accent ───
-const DASH_CSS = `
+// Phục vụ qua GET /_lab/dash.css (CSP style-src 'self' của bản hardened cấm inline <style>)
+export const DASH_CSS = `
 :root{color-scheme:dark;--ac:#ef4444;--ac2:#f97316;--bg:#0a0f1a;--card:#0f172a;--line:#1e293b;--txt:#e2e8f0;--dim:#94a3b8}
 *{box-sizing:border-box}
 body{font-family:system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:3rem}
@@ -425,6 +425,16 @@ code{background:#1e293b;color:#e2e8f0;padding:1px 5px;border-radius:4px;font-siz
 .rules tbody tr{transition:background .12s}
 .rules tbody tr:hover{background:color-mix(in srgb,var(--ac) 7%,transparent)}
 .bluegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.8rem}
+/* CSP-safe: màu nhóm qua class thay cho attribute style="" — hardened chỉ cho style-src 'self' */
+.c-injection{--cat:#f43f5e}.c-xss{--cat:#fb923c}.c-access{--cat:#a78bfa}
+.c-auth{--cat:#38bdf8}.c-config{--cat:#facc15}.c-logic{--cat:#4ade80}
+.dot{background:var(--cat)}
+.chip.cat{border-color:var(--cat);color:var(--cat)}
+.sep{color:#334155}
+.ac{align-self:center}
+.fr{float:right}
+#ctfid{width:70px}
+body.blue{--ac:#22d3ee;--ac2:#0ea5e9}
 .bcard{background:linear-gradient(180deg,color-mix(in srgb,var(--cat) 7%,var(--card)) 0%,var(--card) 55%);
   border:1px solid var(--line);border-radius:12px;padding:.85rem .95rem .75rem 1.05rem;font-size:.85rem;
   display:flex;flex-direction:column;gap:.45rem;position:relative;overflow:hidden;
@@ -465,7 +475,8 @@ const NAV = (mode, active) => `
   <span class="mode ${mode}">LAB ${mode.toUpperCase()}</span>
 </nav>`;
 
-const RED_JS = `
+// Phục vụ qua GET /_lab/dash-red.js — CSP script-src 'self' của hardened cấm inline <script>
+export const RED_JS = `
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const st={cat:'all',diff:0,ctf:false,q:''};
 function apply(){
@@ -487,7 +498,13 @@ $$('.fbtn').forEach(b=>b.onclick=()=>{
 });
 $('#fctf').onchange=e=>{st.ctf=e.target.checked;apply();};
 $('#fsearch').oninput=e=>{st.q=e.target.value.toLowerCase();apply();};
-$$('.cp').forEach(b=>b.onclick=()=>{navigator.clipboard?.writeText(b.dataset.cp);b.textContent='✓';setTimeout(()=>b.textContent='⧉',800);});
+$$('.cp').forEach(b=>b.onclick=()=>{
+  const ok=()=>{b.textContent='✓';setTimeout(()=>b.textContent='⧉',800);};
+  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(b.dataset.cp).then(ok).catch(()=>{fb();});}
+  else fb();
+  function fb(){const t=document.createElement('textarea');t.value=b.dataset.cp;t.style.position='fixed';t.style.opacity='0';
+    document.body.appendChild(t);t.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(t);ok();}
+});
 const KEY='seclab-lab-done';
 const done=new Set(JSON.parse(localStorage.getItem(KEY)||'[]'));
 function paint(){
@@ -524,32 +541,25 @@ $('#ctfsend').onclick=async()=>{
 };
 `;
 
-const BLUE_JS = `
+export const BLUE_JS = `
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 let paused=false;
-const SUS=[
-  /('|%27)\\s*(or|and)\\s|\\bunion\\b|\\-\\-(\\s|$)/i,'SQLi',
-  /<script|<svg|onerror\\s*=|onload\\s*=|javascript:/i,'XSS',
-  /\\.\\.|etc\\/passwd|boot\\.ini/i,'TRAV',
-  /\\/admin/i,'ADMIN',
-  /\\/redirect.*to=(https?%3a|https?:|\\/\\/)/i,'REDIR',
-  /\\/track.*('|%27)/i,'BLIND',
-  /\\/api\\/reset\\//i,'RESET',
-];
 function flagsOf(e){
   const f=[];
-  if(/('|%27)\\s*(or|and)\\s|\\bunion\\b/i.test(e.path))f.push('SQLi');
-  if(/<script|<svg|onerror|onload|javascript:/i.test(e.path))f.push('XSS');
-  if(/\\.\\.|etc\\/passwd|boot\\.ini/i.test(e.path))f.push('TRAV');
-  if(/\\/admin/i.test(e.path))f.push('ADMIN');
-  if(/\\/redirect.*to=(https?%3a|https?:|\\/\\/)/i.test(e.path))f.push('REDIR');
-  if(/\\/track.*('|%27)/i.test(e.path))f.push('BLIND');
-  if(/\\/api\\/reset\\//i.test(e.path))f.push('RESET');
-  if(e.method==='POST'&&/\\/api\\/config/i.test(e.path))f.push('PROTO');
-  if(e.method==='POST'&&/\\/api\\/register.*role=/i.test(e.path))f.push('MASS');
-  if(e.method==='POST'&&/\\/api\\/import/i.test(e.path))f.push('XXE');
-  if(e.method==='POST'&&/\\/upload/i.test(e.path))f.push('UPLOAD');
-  if(/\\/tools\\/ping.*(%26|%3[bB]|%7[cC]|whoami|\\benv\\b|\\bset\\b)/i.test(e.path))f.push('CMDI');
+  let dp=e.path||'';try{dp=decodeURIComponent(dp);}catch(err){dp='';}
+  const p=(e.path||'')+' '+dp; // raw + decoded — payload %27%20 vẫn bị bắt
+  if(/('|%27)\\s*(or|and)\\s|\\bunion\\b/i.test(p))f.push('SQLi');
+  if(/<script|<svg|onerror|onload|javascript:/i.test(p))f.push('XSS');
+  if(/\\.\\.|etc\\/passwd|boot\\.ini/i.test(p))f.push('TRAV');
+  if(/\\/admin/i.test(p))f.push('ADMIN');
+  if(/\\/redirect.*to=(https?%3a|https?:|\\/\\/)/i.test(p))f.push('REDIR');
+  if(/\\/track.*('|%27)/i.test(p))f.push('BLIND');
+  if(/\\/api\\/reset\\//i.test(p))f.push('RESET');
+  if(e.method==='POST'&&/\\/api\\/config/i.test(p))f.push('PROTO');
+  if(e.method==='POST'&&/\\/api\\/register.*role=/i.test(p))f.push('MASS');
+  if(e.method==='POST'&&/\\/api\\/import/i.test(p))f.push('XXE');
+  if(e.method==='POST'&&/\\/upload/i.test(p))f.push('UPLOAD');
+  if(/\\/tools\\/ping.*(%26|%3[bB]|%7[cC]|&|;|\\||whoami|\\benv\\b|\\bset\\b)/i.test(p))f.push('CMDI');
   if(/sqlmap|nikto|nmap|masscan|gobuster|dirbuster|wfuzz|curl\\/|wget|hydra/i.test(e.ua||''))f.push('SCANNER');
   return f;
 }
@@ -601,8 +611,8 @@ export function renderDashboard(mode) {
     .map((cat) => {
       const labs = LABS.filter((l) => l.cat === cat);
       const m = CAT_META[cat];
-      return `<section class="group">
-  <h2><span class="dot" style="background:${m.color}"></span>${esc(CATEGORIES[cat])} <span class="gcount">· ${labs.length} mục tiêu</span></h2>
+      return `<section class="group c-${cat}">
+  <h2><span class="dot"></span>${esc(CATEGORIES[cat])} <span class="gcount">· ${labs.length} mục tiêu</span></h2>
   <p class="gdesc">${esc(m.desc)}</p>
   <div class="grid">${labs.map((l) => renderCard(l, { interactive: true })).join('')}</div>
 </section>`;
@@ -611,7 +621,8 @@ export function renderDashboard(mode) {
   return `<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><title>🔴 Red Team — Chọn mục tiêu | SecLab [${mode.toUpperCase()}]</title>
-<style>${DASH_CSS}</style></head><body>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E%F0%9F%94%B4%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/_lab/dash.css"></head><body>
 ${NAV(mode, 'red')}
 <div class="wrap">
 <div class="hero">
@@ -633,7 +644,7 @@ ${hardened ? '<p class="warn">⚠ Bạn đang ở bản <b>HARDENED</b> — các
 <p class="sub">Tiến độ: <b id="progtxt">0/20 mục tiêu</b> · đang hiển thị <b id="count">20</b></p>
 <div class="filters">
   ${catBtns}
-  <span style="color:#334155">|</span>
+  <span class="sep">|</span>
   ${diffBtns}
   <label class="ftoggle"><input type="checkbox" id="fctf"> chỉ CTF</label>
   <input type="search" id="fsearch" placeholder="🔍 tìm theo tên / CWE / endpoint…">
@@ -644,15 +655,15 @@ ${groups}
   <p class="sub">Khai thác lab → lấy <code>FLAG{...}</code> → chọn thử thách và nộp. Cờ sinh ngẫu nhiên theo phiên — đáp án không thể chép.</p>
   <div id="ctflist"><p class="sub">Đang tải…</p></div>
   <div class="submit">
-    <input name="id" id="ctfid" type="number" min="1" max="10" placeholder="#" style="width:70px">
+    <input name="id" id="ctfid" type="number" min="1" max="10" placeholder="#">
     <input name="flag" id="ctfflag" placeholder="FLAG{...}">
     <button id="ctfsend">Nộp cờ</button>
-    <span id="ctfmsg" class="sub" style="align-self:center"></span>
+    <span id="ctfmsg" class="sub ac"></span>
   </div>
 </div>
 <p class="sub">📚 Giáo trình: <a href="https://jasontm17.github.io/Security_Lab_Study/" target="_blank" rel="noopener">SecHub Online</a> ·
 lời giải (SPOILER): <code>solutions/</code> trong repo · <a href="/blue">🔵 Blue Team console</a> · <a href="/_lab/metrics">/_lab/metrics</a></p>
-</div><script>${RED_JS}</script></body></html>`;
+</div><script src="/_lab/dash-red.js"></script></body></html>`;
 }
 
 /** Blue Team — SOC console: live request feed + alerts + defense rules (GET /blue). */
@@ -668,12 +679,11 @@ export function renderBlueDashboard(mode, rules = []) {
     )
     .join('');
   const blueCards = LABS.map((l) => {
-    const color = CAT_META[l.cat]?.color || '#38bdf8';
     const det = LAB_DETECT[l.id] || [];
     const watch = det.length
       ? det.map((t) => `<span class="brule">◈ ${esc(t)}</span>`).join('')
       : '<span class="bblind">⚠ telemetry mù — cần app-level logging</span>';
-    return `<div class="bcard" style="--cat:${color}">
+    return `<div class="bcard c-${l.cat}">
   <header><span class="bid">${l.id}</span><span class="stars">${DIFF_STARS[l.diff - 1]}</span><span class="bcat">${esc(CATEGORIES[l.cat])}</span></header>
   <h4>${esc(l.title)}</h4>
   <p class="bharden"><b>Phòng thủ:</b> ${esc(l.hard)}</p>
@@ -683,7 +693,8 @@ export function renderBlueDashboard(mode, rules = []) {
   return `<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><title>🔵 Blue Team — SOC Console | SecLab [${mode.toUpperCase()}]</title>
-<style>:root{--ac:#22d3ee;--ac2:#0ea5e9}${DASH_CSS}</style></head><body>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E%F0%9F%94%B5%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/_lab/dash.css"></head><body class="blue">
 ${NAV(mode, 'blue')}
 <div class="wrap">
 <div class="hero">
@@ -700,7 +711,7 @@ ${NAV(mode, 'blue')}
 </div>
 ${hardened ? '<p class="warn">ℹ Bản <b>HARDENED</b> — hầu hết tấn công sẽ bị chặn (400/401/403/415) nhưng request vẫn được log. So sánh feed ở hai bản!</p>' : ''}
 <div class="panel">
-  <h2><span class="live" id="livedot"></span> Live request feed <button class="ftoggle" id="pausebtn" style="float:right">⏸ Tạm dừng</button></h2>
+  <h2><span class="live" id="livedot"></span> Live request feed <button class="ftoggle fr" id="pausebtn">⏸ Tạm dừng</button></h2>
   <p class="sub">80 request gần nhất · làm mới mỗi 2.5s · hàng đỏ = khớp pattern nghi ngờ</p>
   <div class="feedbox"><table class="feedtbl">
     <thead><tr><th>giờ</th><th>method</th><th>path</th><th>ip</th><th>status</th><th>flags</th></tr></thead>
@@ -724,7 +735,7 @@ ${hardened ? '<p class="warn">ℹ Bản <b>HARDENED</b> — hầu hết tấn c�
 </div>
 <p class="sub">📖 Đọc thêm: <code>docs/10-detection-engineering.md</code> · <code>docs/11-case-study-thuc-chien.md</code> ·
 <a href="/lab">🔴 Red Team dashboard</a> · <a href="/_lab/metrics">/_lab/metrics</a></p>
-</div><script>${BLUE_JS}</script></body></html>`;
+</div><script src="/_lab/dash-blue.js"></script></body></html>`;
 }
 
 /**
