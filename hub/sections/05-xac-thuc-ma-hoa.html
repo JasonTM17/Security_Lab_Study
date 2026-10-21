@@ -1,0 +1,70 @@
+<section class="topic" id="chuong-05">
+<h2><span class="num">05</span> · Xác thực, Mật khẩu &amp; Mã hóa nền tảng</h2>
+
+<p>Mọi hệ thống bắt đầu bằng hai câu hỏi: <strong>"bạn là ai?"</strong> (xác thực — authentication) và <strong>"bạn được làm gì?"</strong> (phân quyền — authorization). Rất nhiều sự cố rò rỉ không đến từ mã hóa bị bẻ gãy, mà từ những quyết định sai ở tầng nền tảng này: mật khẩu lưu sai cách, phiên đăng nhập thiếu bảo vệ, quyền cấp rộng hơn mức cần.</p>
+
+<h3>Vì sao không bao giờ lưu mật khẩu dạng plain text</h3>
+
+<p>Khi CSDL bị lộ, mật khẩu để nguyên dạng văn bản (plain text) đồng nghĩa kẻ xấu đăng nhập được ngay mọi tài khoản — và vì người dùng thường tái sử dụng mật khẩu, còn mở khóa được cả tài khoản ở dịch vụ khác. Giải pháp là không lưu mật khẩu mà chỉ lưu <em>băm (hash)</em>: đầu ra một chiều của một hàm toán học, không thể suy ngược đầu vào. Tuy nhiên, MD5 hay SHA-256 được thiết kế để <em>nhanh</em> — GPU thử hàng tỷ phép mỗi giây — nên bản băm trần vẫn bị dò ngược ồ ạt nhờ bảng băm có sẵn (rainbow table). Chuẩn đúng là hàm băm chậm chống vét cạn (key derivation function — KDF) như bcrypt hay Argon2id, có hệ số chi phí (work factor) tăng được theo thời gian — khiến dò ngược tốn gấp hàng tỷ lần.</p>
+
+<table>
+  <tr><th>Cách lưu mật khẩu</th><th>Khi CSDL bị lộ</th><th>Đánh giá</th></tr>
+  <tr><td>Plain text</td><td>Tất cả tài khoản mất ngay lập tức</td><td>Cấm tuyệt đối</td></tr>
+  <tr><td>MD5 / SHA-256 không salt</td><td>Dò ồ ạt bằng rainbow table và GPU</td><td>Chưa đạt chuẩn</td></tr>
+  <tr><td>bcrypt / Argon2id + salt</td><td>Phải dò từng tài khoản riêng, mỗi bản hàng giờ</td><td>Chuẩn hiện nay</td></tr>
+</table>
+
+<p>Lab SecLab khởi tạo bảng <code>users</code> bằng SHA-256 không salt tại <code>src/db.js:16,39</code> — tốt hơn plain text, nhưng chủ ý để lộ khoảng cách tới bcrypt/Argon2id. <strong>Lưu ý quan trọng: khoảng cách này vẫn ngỏ ở bản hardened</strong> — <code>loginSafe()</code> (<code>src/db.js:77-81</code>) vẫn băm cùng một hàm SHA-256 như bản vuln, và mục "lưu mật khẩu" không nằm trong bảng 8 lỗ hổng LAB-01→08 của chuyên mục 04. Nói cách khác, bản hardened <em>không</em> vá điểm này: nâng lên chuẩn bcrypt/Argon2id (thư viện ngoài, Node không có sẵn) là bài tập mở rộng dành cho bạn.</p>
+
+<h3>Salt và pepper: hai lớp khác nhau</h3>
+
+<p><em>Muối (salt)</em> là chuỗi ngẫu nhiên riêng cho từng người dùng, gắn vào mật khẩu trước khi băm rồi lưu công khai cạnh bản băm. Nhờ đó, hai người cùng mật khẩu cho ra hai giá trị khác nhau và rainbow table trở nên vô dụng. <em>Tiêu (pepper)</em> là bí mật dùng chung toàn hệ thống, <strong>không</strong> lưu trong CSDL mà nằm ở biến môi trường hoặc dịch vụ quản lý khóa. Kẻ xấu lấy được CSDL vẫn chưa đọc được pepper, nên bản băm tiếp tục vô nghĩa trừ khi họ đồng thời chiếm được máy chủ.</p>
+
+<h3>MFA/2FA — yếu tố thứ hai</h3>
+
+<p>Xác thực đa yếu tố (multi-factor authentication — MFA) yêu cầu kết hợp hai trong ba loại: cái bạn <em>biết</em> (mật khẩu), cái bạn <em>có</em> (mã một lần OTP từ ứng dụng xác thực TOTP — Time-based One-Time Password: ứng dụng sinh mã 6 chữ số dựa trên thời gian và một bí mật chia sẻ với máy chủ, làm mới mỗi 30 giây — hay khóa phần cứng như YubiKey), cái bạn <em>là</em> (vân tay, khuôn mặt). Dù mật khẩu bị đánh cắp, kẻ xấu vẫn thiếu yếu tố thứ hai. Mã OTP qua SMS an toàn thấp hơn vì dễ bị lừa đảo chuyển tiếp SIM; khóa phần cứng kháng phishing là lựa chọn mạnh nhất.</p>
+
+<h3>Session cookie hay JWT?</h3>
+
+<p>Sau đăng nhập, trạng thái "đã xác thực" được giữ theo hai mẫu thiết kế. <strong>Phiên (session) + cookie</strong>: cookie chỉ chứa số định danh ngẫu nhiên (sid), máy chủ giữ bảng ánh xạ sid → người dùng — trong lab là một <code>Map</code> tại <code>src/lab/app.js:111</code> — và có thể hủy phiên bất cứ lúc nào. <strong>JWT (JSON Web Token)</strong>: token tự mô tả, được ký số, máy chủ không cần tra cứu — nhưng thu hồi trước hạn rất khó, token rò rỉ sống đến hết hạn. Cookie phiên của lab bản vuln không kèm cờ bảo mật; bản hardened thêm <code>HttpOnly; SameSite=Strict</code> tại <code>src/lab/app.js:237-238</code> (LAB-05). Thiếu HttpOnly, JavaScript độc (qua lỗi XSS) đọc được cookie phiên; thiếu SameSite, cookie phiên có thể bị lợi dụng trong CSRF (Cross-Site Request Forgery): bạn đang đăng nhập vào một site, một site khác khiến trình duyệt gửi request tới site đó — và trình duyệt tự kèm cookie phiên theo; SameSite=Strict chặn việc gửi cookie trong những request đến từ site khác.</p>
+
+<h3>Least privilege — quyền hạn tối thiểu</h3>
+
+<p>Nguyên tắc quyền hạn tối thiểu (least privilege): mỗi người dùng, dịch vụ, tiến trình chỉ nhận đúng quyền tối thiểu cần thiết, và theo mặc định bị từ chối (deny-by-default) mọi thứ chưa được cấp phép. Trong lab, mọi lệnh chủ động đi qua cổng kiểm duyệt <code>src/guard.js</code>: loopback tự do, dải IP riêng cần cờ <code>--i-own-this-target</code>, Internet public từ chối cứng — least privilege áp cho chính công cụ. Ngược lại, <code>/api/users/:id</code> bản vuln quên kiểm tra quyền đọc hồ sơ (LAB-03, IDOR): đổi số ID là đọc được dữ liệu người khác — nhóm lỗi phổ biến nhất trong OWASP Top 10.</p>
+
+<h3>HTTPS/TLS hoạt động thế nào</h3>
+
+<p>Giao thức bảo vệ truyền tải (Transport Layer Security — TLS) dựng kênh mã hóa giữa trình duyệt và máy chủ qua một <em>vòng tay bắt tay (handshake)</em>: hai bên thương lượng bộ mật mã, máy chủ trình <em>chứng chỉ số (digital certificate)</em> chứa khóa công khai, và trình duyệt kiểm tra chứng chỉ được bên thứ ba tin cậy — <em>nhà cấp phát chứng chỉ (Certificate Authority — CA)</em> — ký, trỏ đúng tên miền. Kết quả: dữ liệu không đọc được khi bị nghe trộm, không sửa được khi đi qua, và có bằng chứng bạn đang nói chuyện với đúng máy chủ. HTTPS là HTTP chạy trên TLS, chứng chỉ phát hành miễn phí qua Let's Encrypt — không có HTTPS ngày nay là lỗi cấu hình.</p>
+
+<h3>Các kiểu tấn công mật khẩu và cách phòng chống</h3>
+
+<p>Nhận diện đúng cơ chế giúp chọn đúng phòng thủ:</p>
+
+<table>
+  <tr><th>Kiểu tấn công</th><th>Cơ chế</th><th>Phòng chống <span class="badge defense">defense</span></th></tr>
+  <tr><td>Vét cạn (brute force) <span class="badge offense">offense</span></td><td>Thử mọi tổ hợp ký tự; mật khẩu càng ngắn càng chóng thất bại</td><td>Mật khẩu dài ≥ 14 ký tự, KDF chậm, giới hạn số lần thử sai</td></tr>
+  <tr><td>Dồn bằng chứng đã lộ (credential stuffing) <span class="badge offense">offense</span></td><td>Thử hàng triệu cặp email:mật khẩu rò rỉ từ dịch vụ khác, tận dụng việc người dùng tái sử dụng mật khẩu</td><td>Mật khẩu duy nhất cho từng dịch vụ, MFA, cảnh báo đăng nhập bất thường</td></tr>
+  <tr><td>Lừa đảo (phishing) <span class="badge offense">offense</span></td><td>Giả trang đăng nhập để nạn nhân tự giao mật khẩu, thậm chí cả mã OTP</td><td>Kiểm tra tên miền, đào tạo nhận diện, khóa phần cứng kháng phishing</td></tr>
+</table>
+
+<p>Công cụ cá nhân hiệu quả nhất là trình quản lý mật khẩu (password manager): sinh và nhớ mật khẩu ngẫu nhiên duy nhất cho từng dịch vụ, bạn chỉ cần thuộc một mật khẩu chính dài. Nó triệt tiêu credential stuffing tận gốc — vì không còn mật khẩu nào bị tái sử dụng.</p>
+
+<p>Trong lab, bản hardened đấu nối limiter token bucket (20 token, nạp 4/giây, trả <code>429</code> khi cạn) tại <code>src/lab/app.js:113,124</code> — vũ khí chống vét cạn mà bản vuln để mặc kị (LAB-06). Khởi động <code>node src/cli.js serve</code>, thử đăng nhập ở <code>/login</code> (LAB-01 — SQLi bypass: cửa xác thực bị vượt từ hướng khác), rồi chạy bản hardened ở port khác (<code>node src/cli.js serve --hardened --port 3001</code>) và quét lại bằng <code>node src/cli.js scan http://127.0.0.1:3001</code> để so sánh. Bài tập đi kèm trong <code>exercises/04-tan-cong-lab.md</code> và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+
+<div class="card warn">
+<h4>⚠️ Cảnh báo pháp lý</h4>
+<p>Dò mật khẩu, thử bằng chứng đăng nhập rò rỉ hay lừa đảo lấy thông tin xác thực của hệ thống bạn <strong>không sở hữu</strong> là hành vi phạm tội — có thể cấu thành tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính theo <strong>Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017)</strong> hoặc tội đưa hoặc sử dụng trái phép thông tin mạng máy tính, mạng viễn thông theo Điều 288, vi phạm <strong>Luật An ninh mạng 2018</strong>. Mọi thực hành giới hạn trong lab tại <code>127.0.0.1</code> — <code>src/guard.js</code> từ chối mọi mục tiêu công khai.</p>
+</div>
+
+<div class="card ok">
+<h4>Điểm cần nhớ</h4>
+<ul>
+<li>Không bao giờ lưu mật khẩu plain text; dùng bcrypt/Argon2id với salt riêng từng người dùng, cân nhắc thêm pepper ngoài CSDL.</li>
+<li>MFA biến mật khẩu bị lộ từ "thảm họa" thành "sự phiền"; ưu tiên ứng dụng xác thực hoặc khóa phần cứng thay vì SMS-OTP.</li>
+<li>Cookie phiên cần cờ HttpOnly/Secure/SameSite; JWT tiện nhưng khó thu hồi — chọn mẫu thiết kế theo nhu cầu hủy phiên.</li>
+<li>Least privilege và deny-by-default là rào chắn cuối cùng: thiếu kiểm tra quyền gây ra nhiều sự cố hơn mã hóa yếu.</li>
+<li>Mật khẩu duy nhất nhờ password manager, HTTPS mọi nơi — và mọi thử nghiệm chỉ trên lab của chính mình.</li>
+<li>Lab (kể cả bản hardened) vẫn lưu mật khẩu bằng SHA-256 không salt — chuẩn bcrypt/Argon2id là <strong>bài tập bạn phải tự vá</strong>, không phải thứ lab đang áp dụng.</li>
+</ul>
+</div>
+</section>

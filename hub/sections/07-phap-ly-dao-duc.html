@@ -1,0 +1,113 @@
+<section class="topic" id="chuong-07">
+  <h2><span class="num">07</span> Pháp lý &amp; Đạo đức nghề nghiệp tại Việt Nam</h2>
+
+  <p>Đây là chuyên mục <strong>bắt buộc đọc trước</strong> mọi chuyên mục khác. Trong an toàn thông tin, ranh giới giữa "nghề" và "tội" không phải là kỹ năng — mà là <em>giấy phép</em>. Cùng một kỹ thuật đo tải: làm trên lab của bạn là học tập, làm trên server của người khác là phạm tội hình sự. Người mới cần nắm bốn văn bản pháp luật, một quy ước hành nghề và một chuẩn mực đạo đức.</p>
+
+  <div class="card danger">
+    <h4>⚠️ Cảnh báo pháp lý số 1</h4>
+    <p>Vì sao SecLab chặn cứng mọi mục tiêu public (<code>src/guard.js:98-99</code>)? Vì <strong>Điều 287 Bộ luật Hình sự 2015</strong> (sửa đổi 2017) — <em>Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, mạng viễn thông, phương tiện xử lý thông tin điện tử</em> — xử lý hành vi DoS/DDoS với khung tù cao nhất <strong>7–12 năm tù</strong> (ba khung: 6 tháng–3 năm, 3–7 năm, 7–12 năm). Không có ngoại lệ "chỉ thử 1 packet" hay "vì mục đích học".</p>
+  </div>
+
+  <h3>Bốn văn bản pháp luật phải thuộc lòng</h3>
+  <table>
+    <tr><th>Văn bản</th><th>Nội dung cốt lõi</th><th>Điều chính</th></tr>
+    <tr>
+      <td><strong>BLHS 2015 (sửa đổi 2017)</strong></td>
+      <td>Quy định tội danh cụ thể trong không gian mạng</td>
+      <td><strong>Điều 287</strong>: cản trở hoặc gây rối loạn hoạt động của mạng (DoS/DDoS, khung tù cao nhất 7–12 năm)<br><strong>Điều 288</strong>: đưa hoặc sử dụng trái phép thông tin trên mạng<br><strong>Điều 291</strong>: buôn bán, trao đổi, chiếm đoạt tài khoản số</td>
+    </tr>
+    <tr>
+      <td><strong>Luật An toàn thông tin mạng 2015</strong> (86/2015/QH13)</td>
+      <td>Khung quản lý an toàn thông tin; liệt kê hành vi bị cấm trên mạng</td>
+      <td>Điều 16: cấm xâm nhập trái phép, cản trở, làm tê liệt hoạt động của mạng</td>
+    </tr>
+    <tr>
+      <td><strong>Luật An ninh mạng 2018</strong> (24/2018/QH14)</td>
+      <td>Khung an ninh mạng quốc gia; phân loại <em>hệ thống thông tin quan trọng</em></td>
+      <td>Điều 8–9: cấm tấn công an ninh mạng, xâm nhập trái phép, làm tê liệt hệ thống</td>
+    </tr>
+    <tr>
+      <td><strong>Nghị định 13/2023/NĐ-CP</strong></td>
+      <td>Bảo vệ <em>dữ liệu cá nhân</em> (personal data) gắn với một người cụ thể</td>
+      <td>Điều 7: nguyên tắc xử lý; Điều 8: hành vi bị cấm; Điều 15: biện pháp bảo vệ</td>
+    </tr>
+  </table>
+  <p>Với người mới, điều này dịch ra một câu: <strong>quét cổng (port scan), đo tải (load test), dò lỗ hổng nhắm hệ thống của người khác mà không được phép đã là hành vi bị cấm</strong> — dù không lấy được dữ liệu nào. Thu thập dữ liệu cá nhân quy mô lớn khi cào web cũng đụng Nghị định 13/2023/NĐ-CP.</p>
+
+  <h3>Pentest được ủy quyền — cái giấy phép biến kỹ thuật thành nghề</h3>
+  <p><em>Kiểm thử xâm nhập</em> (penetration testing — pentest) là hành vi mô phỏng tấn công để tìm lỗ hổng <strong>trước khi kẻ xấu tìm thấy</strong>. Nó chỉ hợp pháp khi có đủ ba thành tố, thiếu một cái là phạm tội:</p>
+  <div class="grid3">
+    <div class="card info">
+      <h4>1 · Giấy phép bằng văn bản</h4>
+      <p>Văn bản ủy quyền ký bởi chủ sở hữu hợp pháp, ghi rõ bạn là ai, được làm gì, trong khoảng thời gian nào — tấm "thư cứu" của người làm nghề.</p>
+    </div>
+    <div class="card info">
+      <h4>2 · Phạm vi (scope)</h4>
+      <p>Danh sách chính xác: IP/domain nào, port nào được phép; cái nào bị loại trừ (thường là hệ thống sản xuất, dữ liệu khách hàng). Ra ngoài scope = tấn công không được phép.</p>
+    </div>
+    <div class="card info">
+      <h4>3 · Luật giao chiến (Rules of Engagement)</h4>
+      <p>Kỹ thuật nào được dùng, khung giờ nào được "làm ồn", xử lý sự cố và dữ liệu tìm thấy thế nào.</p>
+    </div>
+  </div>
+  <p>Ba trường hợp không cần hợp đồng riêng: hệ thống của <strong>chính bạn</strong> (lab local, VPS bạn thuê); <em>sàn tìm lỗi bảo mật</em> (bug bounty) có chính sách công khai; chương trình công bố lỗ hổng của tổ chức.</p>
+
+  <h3>Responsible disclosure — công bố lỗi một cách có trách nhiệm</h3>
+  <ol>
+    <li><strong>Báo cáo riêng tư</strong> cho chủ hệ thống qua kênh bảo mật (security@, sàn bounty) — không đăng công khai, không tống tiền.</li>
+    <li><strong>Cung cấp bằng chứng vừa đủ</strong> để tái hiện lỗi (reproduce) — không khai thác sâu thêm, không truy cập dữ liệu thật.</li>
+    <li><strong>Chờ thời hạn vá lỗi</strong> (thường 90 ngày) rồi mới công bố, và chỉ công bố sau khi có bản vá.</li>
+    <li><strong>Dữ liệu cá nhân</strong> trông thấy trong quá trình test: không lưu, không sao chép — đúng Nghị định 13/2023/NĐ-CP.</li>
+  </ol>
+
+  <h3>Đạo đức của mũ trắng (white hat ethics)</h3>
+  <div class="card warn">
+    <h4>Bốn nguyên tắc bất di bất dịch</h4>
+    <ul>
+      <li><strong>Chỉ làm trên hệ thống được phép</strong> — lệnh <code>loadtest</code> nhắm mục tiêu public bị <code>guard.js</code> từ chối cứng vì đúng nghĩa này.</li>
+      <li><strong>Gây hại tối thiểu</strong> — chứng minh lỗ hổng tồn tại, không phá hủy dữ liệu, không làm sập dịch vụ thật.</li>
+      <li><strong>Bảo mật thông tin tìm thấy</strong> — lỗ hổng và dữ liệu chỉ chia sẻ với bên ủy quyền.</li>
+      <li><strong>Báo cáo trung thực</strong> — không phóng đại mức độ nghiêm trọng, không che giấu lỗi.</li>
+    </ul>
+  </div>
+
+  <h3>Chứng chỉ nghề — lộ trình học chuẩn ngành</h3>
+  <div class="grid3">
+    <div class="card">
+      <h4>CompTIA Security+</h4>
+      <p>Chứng chỉ <em>nền móng</em> (entry-level) công nhận rộng rãi: khái niệm an toàn, quản trị rủi ro, kiến trúc phòng thủ. Trắc nghiệm, hợp lệ 3 năm — điểm khởi đầu cho người mới.</p>
+    </div>
+    <div class="card">
+      <h4>CEH (Certified Ethical Hacker)</h4>
+      <p>Chứng chỉ của EC-Council: học tư duy tấn công <strong>dưới góc nhìn phòng thủ</strong> — hiểu công cụ kẻ xấu dùng để biết cách chống. Đăng ký kèm cam kết đạo đức nghề.</p>
+    </div>
+    <div class="card">
+      <h4>OSCP</h4>
+      <p>Chứng chỉ thực chiến của Offensive Security: bài lab 24 giờ — phải xâm nhập máy ảo trong môi trường được cấp phép và viết báo cáo. Kỹ năng thật, không học vẹt.</p>
+    </div>
+  </div>
+
+  <h3>Thực hành đúng luật ngay trong SecLab</h3>
+  <p>Mọi lệnh tạo tải và quét đều qua lớp ủy quyền <code>assertAuthorizedTarget()</code> trong <code>src/guard.js</code>: loopback (<code>127.0.0.1</code>) tự do; dải riêng RFC1918 (chuẩn định nghĩa các dải IP dùng nội bộ, không định tuyến trên Internet công cộng — 10.x.x.x, 172.16.0.0–172.31.255.255, 192.168.x.x, tức mạng LAN gia đình/công ty) cần cờ <code>--i-own-this-target</code>; mục tiêu public bị <code>SecurityError</code> từ chối. Quy trình học chuẩn:</p>
+  <pre class="cmd"><span class="cmt"># 1) Khởi động lab CỐ Ý DỄ TỔN THƯƠNG — hợp pháp 100%</span>
+node src/cli.js serve
+
+<span class="cmt"># 2) Recon → scan → đo tải, toàn bộ nhắm lab local</span>
+node src/cli.js recon http://127.0.0.1:3000
+node src/cli.js scan http://127.0.0.1:3000
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps=50 --duration=8
+
+<span class="cmt"># 3) Chạy bản --hardened, scan lại, so sánh: "tấn công → vá → phòng thủ"</span></pre>
+  <p>Bài tập gắn liền: <code>exercises/01-khoi-dong-lab.md</code> (chạy thử guard), <code>exercises/06-phong-thu-va-bao-cao.md</code> (viết báo cáo — chính là "responsible disclosure" trong nghề) và <code>docs/06-polite-scraping.md</code> (ranh giới pháp lý khi <code>crawl</code> web công khai).</p>
+
+  <div class="card ok">
+    <h4>Điểm cần nhớ</h4>
+    <ul>
+      <li>Điều 287 BLHS 2015 xử lý DoS/DDoS tới <strong>7–12 năm tù</strong>; Điều 288, 291 trùm thông tin trái phép và tài khoản số.</li>
+      <li>Pentest chỉ hợp pháp khi đủ <strong>giấy phép văn bản + scope + rules of engagement</strong>; lab của chính bạn luôn an toàn nhất.</li>
+      <li>Responsible disclosure: báo riêng tư → chờ vá → mới công bố; dữ liệu cá nhân không lưu (NĐ 13/2023).</li>
+      <li>Lộ trình chứng chỉ: <strong>Security+</strong> → <strong>CEH</strong> → <strong>OSCP</strong>.</li>
+      <li>Kỹ thuật không có tính hợp pháp — <em>giấy phép mới có</em>.</li>
+    </ul>
+  </div>
+</section>

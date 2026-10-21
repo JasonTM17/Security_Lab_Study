@@ -1,0 +1,118 @@
+<section class="topic" id="chuong-01">
+<h2><span class="num">01</span> · Tổng quan An toàn thông tin</h2>
+
+<p>Trước khi học công cụ nào, hãy trả lời: <strong>an toàn thông tin là gì và ta bảo vệ điều gì?</strong> Chương này là nền tảng cho mọi chủ đề phía sau.</p>
+
+<h3>An toàn thông tin là gì?</h3>
+
+<p><em>An toàn thông tin</em> (Information Security — InfoSec) là tập hợp nguyên tắc, quy trình và công nghệ nhằm <strong>bảo vệ thông tin trước truy cập, sửa đổi, tiết lộ hoặc phá hoại trái phép</strong> — ở dạng số lẫn vật lý. <em>An ninh mạng</em> (cybersecurity) là tập con của an toàn thông tin, tập trung vào các mối đe dọa trên hệ thống số và mạng; giáo trình này dùng hai khái niệm gần như đồng nghĩa. Đây là <strong>trạng thái cần duy trì</strong>, không phải sản phẩm mua một lần.</p>
+
+<h3>Tam giác CIA: ba mục tiêu cốt lõi</h3>
+
+<p>Mọi biện pháp an ninh phục vụ ba mục tiêu, quen gọi là <em>tam giác CIA</em> (Confidentiality – Integrity – Availability):</p>
+
+<div class="grid3">
+  <div class="card">
+    <h4>Bảo mật (Confidentiality)</h4>
+    <p>Chỉ người <strong>được phép</strong> đọc được dữ liệu. Công cụ: mã hoá, phân quyền. Vi phạm: rò rỉ cơ sở dữ liệu khách hàng.</p>
+  </div>
+  <div class="card">
+    <h4>Toàn vẹn (Integrity)</h4>
+    <p>Dữ liệu <strong>không bị thay đổi trái phép</strong>. Công cụ: băm (hash), chữ ký số. Vi phạm: kẻ xấu sửa đơn hàng, bảng điểm.</p>
+  </div>
+  <div class="card">
+    <h4>Khả dụng (Availability)</h4>
+    <p>Dịch vụ <strong>sẵn sàng khi cần</strong>. Công cụ: dự phòng, sao lưu. Vi phạm: tấn công từ chối dịch vụ (DoS/DDoS) — chủ đề chuyên mục 02.</p>
+  </div>
+</div>
+
+<p>Ba cạnh phải <strong>cân bằng</strong>: mã hoá chặt làm chậm truy xuất, chặn IP dễ chặn nhầm khách thật — phòng thủ là nghệ cân bằng theo mức rủi ro chấp nhận.</p>
+
+<h3>Đối thủ của bạn là ai?</h3>
+
+<p>Phòng thủ hiệu quả cần biết <strong>ai</strong> tấn công và <strong>vì mục đích gì</strong>: <span class="badge offense">hiểu đối thủ</span></p>
+
+<table>
+  <tr><th>Loại kẻ tấn công</th><th>Đặc điểm</th><th>Động cơ</th></tr>
+  <tr><td>Kẻ chạy công cụ sẵn (script kiddie)</td><td>Chạy công cụ có sẵn, hiểu ít cơ chế; ít bền bỉ.</td><td>Tò mò, thể hiện</td></tr>
+  <tr><td>Nhà hoạt động mạng (hacktivist)</td><td>Tấn công vì lý tưởng: chèn thông điệp, làm sập trang đối thủ.</td><td>Truyền thông, gây áp lực</td></tr>
+  <tr><td>Tội phạm mạng (cybercriminal)</td><td>Nghề nghiệp: đánh cắp thẻ, tống tiền bằng ransomware (mã độc mã hoá dữ liệu).</td><td>Tiền bạc</td></tr>
+  <tr><td>Người nội bộ (insider)</td><td>Rò dữ liệu chủ tâm hoặc vô ý; khó phát hiện vì ở trong vòng tin cậy.</td><td>Lợi ích, bất cẩn</td></tr>
+  <tr><td>Mối đe dọa bền vững nâng cao (Advanced Persistent Threat — APT)</td><td>Được tài trợ tốt (thường cấp nhà nước), kế hoạch nhiều tháng, chuyên trốn phát hiện.</td><td>Gián điệp, phá hoại chiến lược</td></tr>
+</table>
+
+<p>Càng chuyên nghiệp càng kiên trì: script kiddie quét rồi bỏ đi, APT nấp nhiều năm. Hãy phòng theo <strong>kẻ thù nghiêm trọng nhất</strong> tổ chức bạn có thể gặp.</p>
+
+<h3>Threat model, attack vector, risk: ba từ khoá của tư duy phòng thủ</h3>
+
+<ul>
+  <li><strong>Mô hình đe dọa (threat model):</strong> trả lời "tài sản gì cần bảo vệ, kẻ thù nào muốn nó, họ tới bằng cách nào?" — hoạt động <strong>phòng thủ thuần tuý</strong>, làm trước khi viết mã.</li>
+  <li><strong>Vector tấn công (attack vector):</strong> "con đường" đi vào — lỗ hổng web, email lừa đảo (phishing), mật khẩu yếu, máy chủ quên vá. Vector nào tìm thấy thì bịt lại.</li>
+  <li><strong>Rủi ro (risk):</strong> khả năng xảy ra nhân thiệt hại, hay viết <code>risk = threat × vulnerability × impact</code> — đe dọa gặp điểm yếu trên một tài sản thì sinh thiệt hại.</li>
+</ul>
+
+<div class="card info">
+  <h4>Ví dụ ngay trong lab</h4>
+  <p>Lab tại <code>127.0.0.1:3000</code>: tài sản là dữ liệu giả lập, "kẻ thù" là chính bạn, vector là lỗ hổng cố ý, risk ≈ 0 vì app không nối Internet. Đưa app ra mạng công cộng mà chưa vá thì risk bùng lên — vì thế mọi bài tập SecLab giới hạn trong máy bạn.</p>
+</div>
+
+<h3>Phòng thủ theo lớp (defense in depth)</h3>
+
+<p>Không lớp nào bất khả xâm phạm, nên phòng thủ xếp <strong>nhiều lớp chồng nhau</strong> — lớp sau vẫn làm chậm hoặc phát hiện kẻ tấn công khi lớp trước đã thủng: <span class="badge defense">phòng thủ</span></p>
+
+<ol>
+  <li><strong>Con người &amp; quy trình:</strong> đào tạo, cảnh giác lừa đảo, đặc quyền tối thiểu (least privilege).</li>
+  <li><strong>Ranh giới mạng:</strong> tường lửa (firewall), phân đoạn mạng, giới hạn tần suất (rate-limit).</li>
+  <li><strong>Ứng dụng:</strong> kiểm tra dữ liệu vào/ra, vá lỗ hổng, header bảo mật HTTP.</li>
+  <li><strong>Dữ liệu:</strong> mã hoá, sao lưu định kỳ, tập khôi phục.</li>
+  <li><strong>Giám sát &amp; phản ứng:</strong> ghi log, cảnh báo, ứng phó sự cố.</li>
+</ol>
+
+<p>Trong SecLab: <code>src/defense/headers.js</code> và <code>src/defense/ratelimiter.js</code> là hai lớp phòng thủ của app; <code>node src/cli.js serve --hardened</code> khởi động bản "đã vá" để <strong>so sánh trước/sau</strong> khi thêm một lớp (bài tập <code>exercises/06-phong-thu-va-bao-cao.md</code>).</p>
+
+<h3>White hat và black hat: ranh giới là sự cho phép</h3>
+
+<div class="grid2">
+  <div class="card ok">
+    <h4>Mũ trắng (white hat)</h4>
+    <p>Kiểm thử an ninh <strong>có sự cho phép</strong> của chủ hệ thống: pentest theo hợp đồng, báo cáo lỗ hổng có trách nhiệm (responsible disclosure), CTF. Nghề hợp pháp.</p>
+  </div>
+  <div class="card danger">
+    <h4>Mũ đen (black hat)</h4>
+    <p>Xâm nhập, đánh cắp, phá hoại <strong>không được phép</strong>. "Mũ xám" (gray hat) — tiết lộ lỗ hổng không xin phép — vẫn vi phạm pháp luật.</p>
+  </div>
+</div>
+
+<div class="card warn">
+  <h4>⚠️ Cảnh báo pháp lý</h4>
+  <p>Ở Việt Nam, tấn công hệ thống, đánh cắp dữ liệu, làm gián đoạn dịch vụ của người khác có thể bị truy cứu theo <strong>Điều 287, 288, 291 Bộ luật Hình sự 2015</strong> và <strong>Luật An ninh mạng 2018</strong> — hình phạt nặng, kể cả khi "chỉ thử xem". Quy tắc vàng: <strong>chỉ tác động đến hệ thống bạn sở hữu hoặc được cho phép bằng văn bản.</strong> Chi tiết: <code>docs/01-phap-ly-va-dao-duc.md</code>, <code>docs/06-polite-scraping.md</code>.</p>
+</div>
+
+<h3>An toàn thông tin trong SecLab</h3>
+
+<p>Chuỗi lệnh mở đầu mọi bài thực hành:</p>
+
+<pre class="cmd"><span class="cmt"># 1. Khởi động lab cục bộ — không đụng Internet</span>
+node src/cli.js serve --port 3000
+
+<span class="cmt"># 2. Thăm dò + quét lỗ hổng — CHỈ trên 127.0.0.1</span>
+node src/cli.js recon http://127.0.0.1:3000
+node src/cli.js scan http://127.0.0.1:3000
+
+<span class="cmt"># 3. Đo tải — cảm nhận "khả dụng" trong CIA</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --rps 50 --duration 8</pre>
+
+<p>Mọi lệnh "chủ động" (recon/scan/loadtest) đều qua người gác cổng <code>src/guard.js</code>, từ chối target ngoài lab — đúng nguyên tắc "hành vi chủ động cần sự cho phép". Bài tập đầu: <code>exercises/01-khoi-dong-lab.md</code>; tra nhanh: <code>docs/04-cheat-sheet.md</code>. <span class="badge lab">lab</span></p>
+
+<div class="card ok">
+  <h4>Điểm cần nhớ</h4>
+  <ul>
+    <li>An toàn thông tin = bảo vệ đồng thời <strong>bảo mật – toàn vẹn – khả dụng</strong> (tam giác CIA); ba cạnh phải cân bằng.</li>
+    <li>Biết <strong>đối thủ</strong> — từ script kiddie đến APT — quyết định mức phòng thủ phù hợp.</li>
+    <li>Tư duy phòng thủ theo trình tự <strong>threat model → attack vector → risk</strong>: tài sản, kẻ thù, con đường, ưu tiên theo rủi ro.</li>
+    <li><strong>Defense in depth</strong>: nhiều lớp mỏng tốt hơn một bức tường — con người, mạng, ứng dụng, dữ liệu, giám sát.</li>
+    <li>Ranh giới mũ trắng/mũ đen là <strong>sự cho phép</strong>: thực hành chỉ nhắm <code>127.0.0.1</code>; ra ngoài phạm vi là nguy cơ vi phạm Điều 287 BLHS 2015.</li>
+  </ul>
+</div>
+
+</section>

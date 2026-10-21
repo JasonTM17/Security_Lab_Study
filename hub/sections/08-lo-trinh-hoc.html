@@ -1,0 +1,90 @@
+<section class="topic" id="chuong-08">
+  <h2><span class="num">08</span>Lộ trình Học 12 tháng &amp; Thực hành Hợp pháp</h2>
+
+  <p>An toàn thông tin (Information Security) là môn học theo <em>từng lớp</em>: chưa nắm cách mạng vận hành thì không hiểu lỗ hổng, và không thể phòng thủ nổi. Người mới thường bỏ cuộc vì học lan man — hoặc tệ hơn, thử nghiệm sai cách và vướng pháp lý. Chuyên mục này gợi ý lộ trình 12 tháng, mỗi giai đoạn có đầu ra kiểm chứng được, kèm nền tảng thực hành <strong>hợp pháp</strong> và cách dùng SecLab — lab của chính bạn.</p>
+
+  <div class="card danger">
+    <h4>Quy tắc vàng: lab của mình, hoặc được phép bằng văn bản</h4>
+    <p>Mọi hoạt động quét, thử tải, kiểm tra bảo mật chỉ hợp lệ khi chạy trên hệ thống <strong>bạn sở hữu</strong> (máy ảo, localhost), môi trường lab được cấp phép, hoặc có <strong>sự cho phép bằng văn bản</strong> của chủ sở hữu. Nhắm website của người khác "chỉ để thử" là phạm pháp: tại Việt Nam, <strong>Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017)</strong> xử Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, mạng viễn thông, phương tiện xử lý thông tin điện tử, khung tù cao nhất 7–12 năm (đọc kỹ <code>docs/01-phap-ly-va-dao-duc.md</code>). SecLab biến quy tắc này thành mã nguồn: mọi lệnh tạo tải và quét đều đi qua <code>guard.js</code> — mục tiêu public bị chặn cứng, dải IP riêng bắt buộc có cờ <code>--i-own-this-target</code>, chỉ loopback (127.0.0.1) là tự do (xem phần đầu <code>src/cli.js</code>).</p>
+  </div>
+
+  <h3>Lộ trình gợi ý theo từng giai đoạn</h3>
+  <table>
+    <tr><th>Giai đoạn</th><th>Học gì</th><th>Đầu ra nên có</th></tr>
+    <tr>
+      <td><span class="badge lab">tháng 1–2</span> Mạng &amp; Linux</td>
+      <td>Mô hình OSI, TCP/IP, DNS, địa chỉ IP và subnet; dòng lệnh Linux cơ bản, phân quyền, đọc log.</td>
+      <td>Dựng được máy ảo, dùng terminal thành thạo; đọc <code>docs/02-kien-truc-cong-cu.md</code> và hoàn thành <code>exercises/01-khoi-dong-lab.md</code>.</td>
+    </tr>
+    <tr>
+      <td><span class="badge lab">tháng 3–4</span> Web &amp; lập trình cơ bản</td>
+      <td>HTML/CSS/JavaScript; cơ chế HTTP (method, status code, cookie và session); một ngôn ngữ kịch bản như Python hoặc Node.</td>
+      <td>Tự viết một trang web nhỏ; khởi động lab bằng <code>node src/cli.js serve</code> và đọc hiểu mã <code>src/lab/app.js</code>.</td>
+    </tr>
+    <tr>
+      <td><span class="badge offense">tháng 5–6</span> OWASP Top 10 qua lab</td>
+      <td>Mỗi nhóm lỗ hổng đi theo trật tự <em>khái niệm → cách phát hiện → cách vá</em>: SQL injection, XSS, IDOR, cấu hình sai, thiếu security header.</td>
+      <td>Làm xong <code>exercises/02-recon.md</code>, <code>03-quet-lo-hong.md</code>, <code>04-tan-cong-lab.md</code>; quét bản vuln rồi so sánh với bản <code>--hardened</code> đã vá.</td>
+    </tr>
+    <tr>
+      <td><span class="badge offense">tháng 7–9</span> CTF (Capture The Flag)</td>
+      <td>Giải thử thách trên picoCTF và OverTheWire (chuỗi Bandit) — môi trường thiết kế riêng cho việc học, khai thác ở đó là hợp lệ.</td>
+      <td>Qua được chục thử thách đầu tiên của Bandit, viết write-up (bài giải có diễn giải) cho từng thử thách.</td>
+    </tr>
+    <tr>
+      <td><span class="badge defense">tháng 10–12</span> Chuyên sâu lựa chọn</td>
+      <td>Chọn một hướng đi sâu: <em>web security</em> (secure coding, kiểm thử) hoặc <em>network defense</em> (rate limiting, giám sát, ứng phó sự cố).</td>
+      <td>Làm lại các bài SecLab dưới góc nhìn phòng thủ: <code>exercises/05</code>, <code>06</code>, <code>07</code>; trình bày báo cáo kèm đề xuất vá cụ thể.</td>
+    </tr>
+  </table>
+
+  <h3>Nền tảng học hợp pháp</h3>
+  <div class="grid3">
+    <div class="card info">
+      <h4>TryHackMe</h4>
+      <p>Lộ trình có hướng dẫn từng bước (guided path), thân thiện nhất với người mới; phòng lab được phép khai thác. Hợp giai đoạn tháng 1–6.</p>
+    </div>
+    <div class="card info">
+      <h4>PortSwigger Web Security Academy</h4>
+      <p>Miễn phí, chuẩn mực về web security; mỗi bài có lab riêng tập trung một lỗ hổng. Hợp tháng 5–12, nhất là nhánh web.</p>
+    </div>
+    <div class="card info">
+      <h4>HackTheBox</h4>
+      <p>Các máy lab được phép tấn công trong môi trường kiểm soát, khó hơn; hợp từ tháng 7, song song giai đoạn CTF.</p>
+    </div>
+  </div>
+  <p>Điểm chung của cả ba: "sân chơi" được chủ sở hữu cho phép trước. Sự cho phép đó — chứ không phải công cụ — là ranh giới giữa học và phạm pháp.</p>
+
+  <h3>Dùng SecLab suốt 12 tháng</h3>
+  <p>SecLab là lab web chạy trên máy bạn (bind 127.0.0.1, không mở ra bên ngoài), nên mọi lệnh đều hợp pháp mặc định. Thứ tự gợi ý:</p>
+  <pre class="cmd">node src/cli.js doctor          <span class="cmt"># kiểm tra môi trường trong buổi đầu tiên</span>
+node src/cli.js serve           <span class="cmt"># lab vuln (cố ý dễ tổn thương) tại 127.0.0.1:3000</span>
+node src/cli.js recon http://127.0.0.1:3000
+node src/cli.js scan  http://127.0.0.1:3000   <span class="cmt"># quét lỗ hổng → báo cáo ghi vào reports/</span>
+npm run serve:hardened          <span class="cmt"># bản đã vá chạy port khác — scan lại và so sánh</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 50 --duration 8
+node src/cli.js flowtest http://127.0.0.1:3000 --users 5 --iterations 10
+node src/cli.js crawl --url=https://một-site-công-khai --delay-ms 800  <span class="cmt"># cào lịch sự, tôn trọng robots.txt</span>
+node src/cli.js labs            <span class="cmt"># liệt kê các bài thực hành trong exercises/</span></pre>
+  <p>Nguồn học đi kèm: <strong>7 bài thực hành</strong> trong <code>exercises/</code> (01 khởi động lab, 02 recon, 03 quét lỗ hổng, 04 tấn công lab, 05 mô phỏng tải &amp; slowloris, 06 phòng thủ &amp; báo cáo, 07 crawl &amp; flow) và bộ tài liệu trong <code>docs/</code> — đọc <code>docs/01-phap-ly-va-dao-duc.md</code> đầu tiên, <code>03</code> và <code>04-cheat-sheet.md</code> khi vào giai đoạn tải, <code>06-polite-scraping.md</code> cho bài crawl. Chú ý lệnh <code>crawl</code> ngược chiều còn lại: cho phép site công khai (cào lịch sự) nhưng chặn loopback trừ khi có <code>--i-own-this-target</code>. Sự ngoại lệ này có cơ sở rõ ràng, không phải giấy phép đặc biệt: crawl chỉ <strong>đọc</strong> các trang công khai bằng GET chậm rãi — delay giữa hai request không thể xuống dưới 300 ms, tôn trọng robots.txt, tối đa 200 trang/sâu 5, giới hạn cùng một domain, không đăng nhập hay gửi cookie, định danh rõ ràng — về bản chất giống một người dùng lịch sự mở trang bằng trình duyệt, không gây áp lực lên tài nguyên của ai. Ngược lại, quét và tạo tải chủ động dồn tài nguyên hệ thống, nên với mục tiêu public vẫn chặn cứng không ngoại lệ. Bảng ranh giới đầy đủ: <code>docs/06-polite-scraping.md</code>.</p>
+
+  <div class="card warn">
+    <h4>Những điều không bao giờ làm — kể cả "vì mục đích học"</h4>
+    <ul>
+      <li>Quét port, gửi tải hoặc thử payload vào bất kỳ website, IP nào ngoài lab của bạn — kể cả trang của trường, công ty hay một site "nhỏ" mà bạn nghĩ sẽ chẳng ai để ý.</li>
+      <li>Chạy công cụ lên hệ thống thật không có ủy quyền; "báo lỗi bảo mật tốt bụng" cũng phải qua chương trình bug bounty hoặc thư xin phép trước.</li>
+      <li>Chia sẻ mã khai thác chạy được; hãy chia sẻ khái niệm, cách phát hiện và cách vá — đúng tinh thần giáo dục của toàn bộ giáo trình này.</li>
+    </ul>
+  </div>
+
+  <div class="card ok">
+    <h4>Điểm cần nhớ</h4>
+    <ul>
+      <li>Lộ trình 12 tháng: mạng &amp; Linux → web &amp; lập trình → OWASP Top 10 qua lab → CTF (picoCTF, OverTheWire) → chuyên sâu web security hoặc network defense.</li>
+      <li>TryHackMe, PortSwigger Web Security Academy, HackTheBox là nền tảng học hợp pháp vì mọi thử thách đều diễn ra trong môi trường được phép.</li>
+      <li>SecLab đi cùng cả lộ trình: <code>serve</code> → <code>recon</code> → <code>scan</code> → <code>loadtest</code>/<code>flowtest</code> → so sánh bản hardened; 7 bài trong <code>exercises/</code> là kế hoạch học theo tuần.</li>
+      <li>Quy tắc vàng không có ngoại lệ: lab của mình hoặc giấy phép bằng văn bản — vi phạm có thể cấu thành tội danh theo Điều 287 BLHS 2015.</li>
+      <li>Sản phẩm học là write-up và báo cáo có đề xuất vá — bằng chứng kỹ năng mà nhà tuyển dụng nhìn thấy.</li>
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,94 @@
+<section class="topic" id="chuong-06">
+<h2>06 · Mạng &amp; Giao thức — Nền tảng bắt buộc của nghề</h2>
+
+<p>An toàn thông tin không bắt đầu bằng công cụ, mà bắt đầu từ câu hỏi: <em>dữ liệu đi từ máy này sang máy kia bằng đường nào?</em> Trinh sát (reconnaissance), quét lỗ hổng, DDoS, tường lửa — tất cả đều là sự kiện ở tầng mạng. Nắm được nền tảng này, các mô-đun của SecLab đọc lên rõ ràng; bỏ qua nó, bạn chỉ chạy lệnh mà không biết mình đang làm gì.</p>
+
+<h3>TCP/IP: ngôn ngữ chung của Internet</h3>
+
+<p>TCP/IP là bộ quy tắc giao tiếp (protocol) mà mọi thiết bị dùng để trao đổi. Dữ liệu được cắt thành các <strong>gói tin</strong> (packet), mỗi gói mang <strong>địa chỉ IP</strong> (IP address) của đích — ví dụ <code>127.0.0.1</code> luôn nghĩa là "chính máy này" (loopback). Tầng IP giao tới đúng nhà; <strong>TCP</strong> (Transmission Control Protocol) giao tới <em>đúng thứ tự, không mất mát</em> nhờ <strong>bắt tay ba bước</strong> (three-way handshake): khách gửi SYN, chủ đáp SYN-ACK, khách xác nhận ACK. Ngược lại, <strong>UDP</strong> không bắt tay: nhanh, nhẹ, nhưng không bảo đảm — tính "gửi xong quên" đó là nền của UDP flood trong <code>docs/03-dos-ddos-hieu-dung-va-phong-thu.md</code>.</p>
+
+<p>Mô hình <strong>client–server</strong>: bên chủ động kết nối là máy khách, bên lắng nghe và phản hồi là máy chủ. Một máy chủ chạy nhiều dịch vụ cùng lúc, phân biệt bằng <strong>cổng</strong> (port) — số 0–65535 gắn sau địa chỉ IP. Bạn đã dùng nó mỗi lần mở <code>http://127.0.0.1:3000</code>: cổng 3000 là nơi <code>src/lab/serve.js</code> lắng nghe. Vài cổng chuẩn cần thuộc:</p>
+
+<table>
+<tr><th>Cổng</th><th>Dịch vụ</th><th>Ghi chú nghề nghiệp</th></tr>
+<tr><td>22</td><td>SSH</td><td>Quản trị từ xa — cổng nhạy cảm</td></tr>
+<tr><td>53</td><td>DNS</td><td>Phân giải tên miền thành IP</td></tr>
+<tr><td>80 / 443</td><td>HTTP / HTTPS</td><td>Web thường / web mã hoá qua TLS</td></tr>
+<tr><td>3306 / 5432</td><td>MySQL / PostgreSQL</td><td>Không bao giờ mở ra Internet công cộng</td></tr>
+</table>
+
+<h3>DNS và HTTP/HTTPS</h3>
+
+<p>Con người nhớ tên miền, máy tính cần số IP. <strong>DNS</strong> (Domain Name System) là "danh bạ Internet" biến <code>example.com</code> thành địa chỉ — một truy vấn vô hình trước mỗi lần mở trang web. Vì đứng trước mọi kết nối, DNS cũng là điểm tấn công kinh điển: đánh lừa DNS (DNS spoofing) đưa người dùng tới máy chủ giả.</p>
+
+<p><strong>HTTP</strong> (HyperText Transfer Protocol) là giao thức giữa trình duyệt và web server, làm việc theo cặp <strong>yêu cầu – phản hồi</strong> (request–response): dòng đầu ghi phương thức và đường dẫn (vd <code>GET /api/users/2</code>), tiếp theo là <strong>tiêu đề</strong> (header) và <strong>thân</strong> (body). Mã trạng thái (status code) tóm tắt kết quả: 200 thành công, 403 bị cấm, 404 không thấy, 500 lỗi máy chủ — và <strong>429 "quá nhiều yêu cầu"</strong>, mã hardened lab trả khi rate limiter chặn tải. <strong>HTTPS</strong> chỉ là HTTP bọc trong <strong>TLS</strong> (Transport Layer Security): mã hoá, xác thực máy chủ bằng chứng chỉ số, bảo đảm toàn vẹn — vì vậy Wireshark bắt gói HTTPS chỉ thấy dữ liệu đã mã hoá, còn <code>src/defense/headers.js</code> cài HSTS (HTTP Strict Transport Security — header ra lệnh cho trình duyệt từ nay chỉ truy cập site này bằng HTTPS, bỏ HTTP không mã hoá).</p>
+
+<h3>Ba công cụ quan sát hợp pháp</h3>
+
+<div class="grid2">
+  <div class="card info">
+    <h4>curl — gửi HTTP thủ công <span class="badge defense">quan sát</span></h4>
+    <p>Cách nhanh nhất để "thấy" giao dịch HTTP trần trụi: tự soạn yêu cầu, đọc nguyên phản hồi. Recon và vulnscan của SecLab về bản chất là curl được tự động hoá.</p>
+  </div>
+  <div class="card info">
+    <h4>Wireshark — bắt gói tin <span class="badge defense">quan sát</span></h4>
+    <p>Chụp gói tin trên <strong>card mạng của chính bạn</strong> để xem bắt tay TCP, truy vấn DNS, kết nối TLS diễn ra thế nào — chỉ với lưu lượng bạn có quyền nhìn.</p>
+  </div>
+</div>
+
+<div class="card info">
+  <h4>Nmap — quét cổng và dịch vụ <span class="badge defense">đo đạc</span></h4>
+  <p>Nmap gửi gói kết nối thử để hỏi "máy này đang mở những cổng nào". <strong>Chỉ được dùng trên hệ thống bạn sở hữu hoặc có ủy quyền bằng văn bản</strong> — quét trái phép có thể bị coi là cản trở. Thực hành trên lab <code>127.0.0.1</code> hoặc máy chủ cho phép công khai của Nmap (<code>scanme.nmap.org</code>), đúng tinh thần "quét chỉ khi được phép" trong <code>exercises/02-recon.md</code>.</p>
+</div>
+
+<pre class="cmd"><span class="cmt"># curl: gửi yêu cầu GET tới lab của chính bạn (npm run serve trước đã)</span>
+curl -i http://127.0.0.1:3000/api/users/2
+
+<span class="cmt"># chỉ xem dòng trạng thái + tiêu đề phản hồi</span>
+curl -I http://127.0.0.1:3000/headers
+
+<span class="cmt"># đối chiếu: recon của SecLab chính là các yêu cầu HTTP được gói lại</span>
+node src/cli.js recon http://127.0.0.1:3000
+
+<span class="cmt"># quét Nmap trên máy của chính mình — nơi duy nhất bạn có quyền mặc định</span>
+nmap -sV 127.0.0.1
+
+<span class="cmt"># mọi mô-đun còn lại của lab cũng chỉ là HTTP trên TCP này</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=slow --rps 40 --duration 8
+node src/cli.js flowtest http://127.0.0.1:3000
+<span class="cmt"># crawl ngược chiều: cho phép site công khai nhưng CHẶN loopback — cần cờ sở hữu</span>
+node src/cli.js crawl --url=http://127.0.0.1:3000 --i-own-this-target</pre>
+
+<div class="grid3">
+  <div class="card">
+    <h4>Tường lửa (firewall)</h4>
+    <p>Bộ lọc gói tin theo quy tắc: địa chỉ, cổng, chiều nào được qua. "Cửa mở – cửa đóng" đầu tiên của phòng thủ, tương tự vai trò của <code>src/defense/ratelimiter.js</code> ở tầng ứng dụng.</p>
+  </div>
+  <div class="card">
+    <h4>VPN (mạng riêng ảo)</h4>
+    <p>Đường hầm mã hoá giữa bạn và máy chủ tin cậy: giấu nội dung khỏi Wi-Fi công cộng và nhà mạng. VPN không biến bạn vô danh — nhà cung cấp VPN vẫn thấy lưu lượng.</p>
+  </div>
+  <div class="card">
+    <h4>NAT (dịch địa chỉ mạng)</h4>
+    <p>Cho nhiều máy nội bộ dùng chung một IP công cộng và che chúng khỏi kết nối trực tiếp từ bên ngoài — tiện ích, nhưng không thay thế được tường lửa.</p>
+  </div>
+</div>
+
+<p>Phòng thủ DDoS vì thế không phải một cấu hình duy nhất: tường lửa lọc tầng mạng, rate limiter lọc tầng HTTP, CDN/anti-DDoS hấp thụ tải trước khi chạm server — mạch bạn thực hành ở <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+
+<div class="card danger">
+  <h4>Ranh giới pháp lý — đọc kỹ trước khi dùng bất kỳ công cụ nào ở trên</h4>
+  <p>Wireshark, Nmap, curl đều <strong>hợp pháp khi dùng trên mạng và hệ thống của chính bạn</strong>, hoặc mục tiêu được ủy quyền. Nhìn lén lưu lượng Wi-Fi của người khác, quét hay thu thập thông tin từ hệ thống của tổ chức khác là vi phạm: Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017) xử Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, Điều 288 xử tội đưa hoặc sử dụng trái phép thông tin mạng máy tính, mạng viễn thông, Luật An ninh mạng 2018 cấm xâm nhập và cản trở hệ thống. SecLab tự giữ ranh giới này: công cụ tải chỉ chạy đầy đủ trên <code>127.0.0.1</code>, mục tiêu ngoài localhost đòi hỏi cờ <code>--i-own-this-target</code> — lời cam kết bằng lệnh rằng bạn sở hữu mục tiêu.</p>
+</div>
+
+<div class="card ok">
+  <h4>Điểm cần nhớ</h4>
+  <ul>
+    <li>TCP/IP: địa chỉ IP định đích, TCP bảo đảm tin cậy qua bắt tay ba bước, UDP nhanh nhưng không bảo đảm.</li>
+    <li>Mô hình client–server + <strong>cổng</strong>: một địa chỉ, nhiều dịch vụ — 80/443 là HTTP/HTTPS, 22 là SSH, cổng CSDL không bao giờ lộ ra ngoài.</li>
+    <li>HTTP là cặp yêu cầu–phản hồi; HTTPS chỉ là HTTP + TLS mã hoá; mã 429 chính là phản hồi phòng thủ bạn sẽ gặp ở lab hardened.</li>
+    <li>curl, Wireshark, Nmap chỉ hợp pháp trên <strong>mạng của chính bạn</strong> hoặc mục tiêu được ủy quyền — quét hay đánh chặn hệ thống người khác vi phạm Điều 287, 288 BLHS 2015.</li>
+    <li>Tường lửa lọc, VPN mã hoá đường đi, NAT chia sẻ địa chỉ — ba công cụ khác nhau, không thay thế nhau.</li>
+  </ul>
+</div>
+</section>

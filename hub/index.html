@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>SecHub — Hub học An toàn thông tin</title>
+<meta name="description" content="Hub tổng hợp kiến thức & công cụ học an toàn thông tin: DDoS, malware, xâm nhập web, pháp lý Việt Nam — kèm lab thực hành SecLab.">
+<style>
+  :root{color-scheme:light}
+  :root{
+    --bg:#0b0f1a; --bg2:#111827; --panel:#141b2d; --panel2:#1a2338;
+    --line:#24304d; --txt:#dbe4f5; --dim:#8b9bbd; --accent:#22d3ee; --accent2:#34d399;
+    --warn:#fbbf24; --danger:#f87171; --violet:#a78bfa;
+    --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.65;font-size:16px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;padding:64px 24px 48px;text-align:center;background:
+    radial-gradient(ellipse 60% 50% at 50% -10%,rgba(34,211,238,.14),transparent),
+    radial-gradient(ellipse 40% 40% at 80% 0%,rgba(167,139,250,.10),transparent),
+    var(--bg)}
+  .hero .shield{font-size:56px;filter:drop-shadow(0 0 18px rgba(34,211,238,.45))}
+  .hero h1{font-size:clamp(28px,5vw,44px);letter-spacing:-.5px;margin:12px 0 10px;color:#67e8f9;
+    background:linear-gradient(92deg,#e6f7ff,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p{color:var(--dim);max-width:760px;margin:0 auto;font-size:17px}
+  .hero .tagline{margin-top:14px;display:inline-block;font-family:var(--mono);font-size:13px;
+    color:var(--accent2);border:1px solid var(--line);border-radius:999px;padding:6px 14px;background:var(--panel)}
+
+  /* ---------- layout ---------- */
+  .layout{display:grid;grid-template-columns:250px 1fr;max-width:1240px;margin:0 auto;gap:28px;padding:0 24px 64px}
+  nav.toc{position:sticky;top:0;align-self:start;padding:28px 0;max-height:100vh;overflow:auto}
+  nav.toc .toc-title{font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
+  nav.toc a{display:block;padding:7px 12px;border-left:2px solid var(--line);color:var(--dim);font-size:14px;border-radius:0 6px 6px 0}
+  nav.toc a:hover{color:var(--txt);border-left-color:var(--accent);background:var(--panel);text-decoration:none}
+  main{min-width:0;padding-top:28px}
+
+  /* ---------- sections & cards ---------- */
+  section.topic{margin-bottom:56px}
+  section.topic>h2{display:flex;align-items:center;gap:12px;font-size:26px;letter-spacing:-.3px;
+    padding-bottom:12px;border-bottom:2px solid var(--line);margin-bottom:20px}
+  section.topic>h2 .num{font-family:var(--mono);font-size:15px;color:var(--bg);background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border-radius:8px;padding:3px 10px;font-weight:700}
+  h3{font-size:19px;margin:26px 0 10px;color:#eaf3ff}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 14px 22px}
+  li{margin-bottom:6px}
+  strong{color:#f1f7ff}
+  em{color:var(--accent2);font-style:normal}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .card h4{font-size:15px;margin-bottom:8px;color:var(--accent)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}.layout{grid-template-columns:1fr}nav.toc{position:static;max-height:none;border-bottom:1px solid var(--line)}}
+
+  .info{border-left:4px solid var(--accent);background:linear-gradient(90deg,rgba(34,211,238,.07),var(--panel))}
+  .warn{border-left:4px solid var(--warn);background:linear-gradient(90deg,rgba(251,191,36,.07),var(--panel))}
+  .danger{border-left:4px solid var(--danger);background:linear-gradient(90deg,rgba(248,113,113,.08),var(--panel))}
+  .ok{border-left:4px solid var(--accent2);background:linear-gradient(90deg,rgba(52,211,153,.07),var(--panel))}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:#eaf3ff;font-weight:600}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+
+  pre.cmd, code{font-family:var(--mono);font-size:13.5px}
+  code{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:#9fe8ff}
+  pre.cmd{background:#0a0e18;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:12px 0;color:#a5f3fc;white-space:pre-wrap}
+  pre.cmd .cmt{color:var(--dim)}
+
+  .badge{display:inline-block;font-family:var(--mono);font-size:11.5px;border-radius:999px;padding:2px 10px;border:1px solid var(--line);color:var(--dim);margin-left:8px;vertical-align:middle}
+  .badge.defense{color:var(--accent2);border-color:rgba(52,211,153,.4)}
+  .badge.offense{color:var(--danger);border-color:rgba(248,113,113,.4)}
+  .badge.lab{color:var(--accent);border-color:rgba(34,211,238,.4)}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;color:var(--dim);font-size:13.5px;background:var(--bg2)}
+  footer .law{color:var(--warn);font-family:var(--mono);font-size:12.5px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="shield">🛡️</div>
+  <h1>SecHub — Hub học An toàn thông tin</h1>
+  <p>Tổng hợp kiến thức &amp; công cụ học an ninh mạng một cách <strong>hợp pháp và có đạo đức</strong>:
+     từ DDoS, malware, xâm nhập web đến pháp lý Việt Nam — mọi chủ đề đều gắn với lab thực hành
+     <strong>SecLab</strong> chạy trên chính máy của bạn.</p>
+  <span class="tagline">học để phòng thủ · thực hành trên lab của mình · tôn trọng pháp luật</span>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="Mục lục">
+    <div class="toc-title">Mục lục</div>
+    <a href="#chuong-01">Tổng quan An toàn thông tin</a>
+    <a href="#chuong-02">DDoS &amp; DoS — Từ cơ chế đến phòng thủ</a>
+    <a href="#chuong-03">Malware — Virus, Worm, Ransomware &amp; bạn đồng hành</a>
+    <a href="#chuong-04">Xâm nhập Web — OWASP Top 10 qua lăng kính lab SecLab</a>
+    <a href="#chuong-05">Xác thực, Mật khẩu &amp; Mã hóa nền tảng</a>
+    <a href="#chuong-06">Mạng &amp; Giao thức — Nền tảng bắt buộc của nghề</a>
+    <a href="#chuong-07">07 Pháp lý &amp; Đạo đức nghề nghiệp tại Việt Nam</a>
+    <a href="#chuong-08">08Lộ trình Học 12 tháng &amp; Thực hành Hợp pháp</a>
+    <a href="#chuong-09">Cheat sheet lệnh &amp; quy trình làm việc</a>
+  </nav>
+  <main>
+    <section class="topic" id="chuong-01">
+<h2><span class="num">01</span> · Tổng quan An toàn thông tin</h2>
+
+<p>Trước khi học công cụ nào, hãy trả lời: <strong>an toàn thông tin là gì và ta bảo vệ điều gì?</strong> Chương này là nền tảng cho mọi chủ đề phía sau.</p>
+
+<h3>An toàn thông tin là gì?</h3>
+
+<p><em>An toàn thông tin</em> (Information Security — InfoSec) là tập hợp nguyên tắc, quy trình và công nghệ nhằm <strong>bảo vệ thông tin trước truy cập, sửa đổi, tiết lộ hoặc phá hoại trái phép</strong> — ở dạng số lẫn vật lý. <em>An ninh mạng</em> (cybersecurity) là tập con của an toàn thông tin, tập trung vào các mối đe dọa trên hệ thống số và mạng; giáo trình này dùng hai khái niệm gần như đồng nghĩa. Đây là <strong>trạng thái cần duy trì</strong>, không phải sản phẩm mua một lần.</p>
+
+<h3>Tam giác CIA: ba mục tiêu cốt lõi</h3>
+
+<p>Mọi biện pháp an ninh phục vụ ba mục tiêu, quen gọi là <em>tam giác CIA</em> (Confidentiality – Integrity – Availability):</p>
+
+<div class="grid3">
+  <div class="card">
+    <h4>Bảo mật (Confidentiality)</h4>
+    <p>Chỉ người <strong>được phép</strong> đọc được dữ liệu. Công cụ: mã hoá, phân quyền. Vi phạm: rò rỉ cơ sở dữ liệu khách hàng.</p>
+  </div>
+  <div class="card">
+    <h4>Toàn vẹn (Integrity)</h4>
+    <p>Dữ liệu <strong>không bị thay đổi trái phép</strong>. Công cụ: băm (hash), chữ ký số. Vi phạm: kẻ xấu sửa đơn hàng, bảng điểm.</p>
+  </div>
+  <div class="card">
+    <h4>Khả dụng (Availability)</h4>
+    <p>Dịch vụ <strong>sẵn sàng khi cần</strong>. Công cụ: dự phòng, sao lưu. Vi phạm: tấn công từ chối dịch vụ (DoS/DDoS) — chủ đề chuyên mục 02.</p>
+  </div>
+</div>
+
+<p>Ba cạnh phải <strong>cân bằng</strong>: mã hoá chặt làm chậm truy xuất, chặn IP dễ chặn nhầm khách thật — phòng thủ là nghệ cân bằng theo mức rủi ro chấp nhận.</p>
+
+<h3>Đối thủ của bạn là ai?</h3>
+
+<p>Phòng thủ hiệu quả cần biết <strong>ai</strong> tấn công và <strong>vì mục đích gì</strong>: <span class="badge offense">hiểu đối thủ</span></p>
+
+<table>
+  <tr><th>Loại kẻ tấn công</th><th>Đặc điểm</th><th>Động cơ</th></tr>
+  <tr><td>Kẻ chạy công cụ sẵn (script kiddie)</td><td>Chạy công cụ có sẵn, hiểu ít cơ chế; ít bền bỉ.</td><td>Tò mò, thể hiện</td></tr>
+  <tr><td>Nhà hoạt động mạng (hacktivist)</td><td>Tấn công vì lý tưởng: chèn thông điệp, làm sập trang đối thủ.</td><td>Truyền thông, gây áp lực</td></tr>
+  <tr><td>Tội phạm mạng (cybercriminal)</td><td>Nghề nghiệp: đánh cắp thẻ, tống tiền bằng ransomware (mã độc mã hoá dữ liệu).</td><td>Tiền bạc</td></tr>
+  <tr><td>Người nội bộ (insider)</td><td>Rò dữ liệu chủ tâm hoặc vô ý; khó phát hiện vì ở trong vòng tin cậy.</td><td>Lợi ích, bất cẩn</td></tr>
+  <tr><td>Mối đe dọa bền vững nâng cao (Advanced Persistent Threat — APT)</td><td>Được tài trợ tốt (thường cấp nhà nước), kế hoạch nhiều tháng, chuyên trốn phát hiện.</td><td>Gián điệp, phá hoại chiến lược</td></tr>
+</table>
+
+<p>Càng chuyên nghiệp càng kiên trì: script kiddie quét rồi bỏ đi, APT nấp nhiều năm. Hãy phòng theo <strong>kẻ thù nghiêm trọng nhất</strong> tổ chức bạn có thể gặp.</p>
+
+<h3>Threat model, attack vector, risk: ba từ khoá của tư duy phòng thủ</h3>
+
+<ul>
+  <li><strong>Mô hình đe dọa (threat model):</strong> trả lời "tài sản gì cần bảo vệ, kẻ thù nào muốn nó, họ tới bằng cách nào?" — hoạt động <strong>phòng thủ thuần tuý</strong>, làm trước khi viết mã.</li>
+  <li><strong>Vector tấn công (attack vector):</strong> "con đường" đi vào — lỗ hổng web, email lừa đảo (phishing), mật khẩu yếu, máy chủ quên vá. Vector nào tìm thấy thì bịt lại.</li>
+  <li><strong>Rủi ro (risk):</strong> khả năng xảy ra nhân thiệt hại, hay viết <code>risk = threat × vulnerability × impact</code> — đe dọa gặp điểm yếu trên một tài sản thì sinh thiệt hại.</li>
+</ul>
+
+<div class="card info">
+  <h4>Ví dụ ngay trong lab</h4>
+  <p>Lab tại <code>127.0.0.1:3000</code>: tài sản là dữ liệu giả lập, "kẻ thù" là chính bạn, vector là lỗ hổng cố ý, risk ≈ 0 vì app không nối Internet. Đưa app ra mạng công cộng mà chưa vá thì risk bùng lên — vì thế mọi bài tập SecLab giới hạn trong máy bạn.</p>
+</div>
+
+<h3>Phòng thủ theo lớp (defense in depth)</h3>
+
+<p>Không lớp nào bất khả xâm phạm, nên phòng thủ xếp <strong>nhiều lớp chồng nhau</strong> — lớp sau vẫn làm chậm hoặc phát hiện kẻ tấn công khi lớp trước đã thủng: <span class="badge defense">phòng thủ</span></p>
+
+<ol>
+  <li><strong>Con người &amp; quy trình:</strong> đào tạo, cảnh giác lừa đảo, đặc quyền tối thiểu (least privilege).</li>
+  <li><strong>Ranh giới mạng:</strong> tường lửa (firewall), phân đoạn mạng, giới hạn tần suất (rate-limit).</li>
+  <li><strong>Ứng dụng:</strong> kiểm tra dữ liệu vào/ra, vá lỗ hổng, header bảo mật HTTP.</li>
+  <li><strong>Dữ liệu:</strong> mã hoá, sao lưu định kỳ, tập khôi phục.</li>
+  <li><strong>Giám sát &amp; phản ứng:</strong> ghi log, cảnh báo, ứng phó sự cố.</li>
+</ol>
+
+<p>Trong SecLab: <code>src/defense/headers.js</code> và <code>src/defense/ratelimiter.js</code> là hai lớp phòng thủ của app; <code>node src/cli.js serve --hardened</code> khởi động bản "đã vá" để <strong>so sánh trước/sau</strong> khi thêm một lớp (bài tập <code>exercises/06-phong-thu-va-bao-cao.md</code>).</p>
+
+<h3>White hat và black hat: ranh giới là sự cho phép</h3>
+
+<div class="grid2">
+  <div class="card ok">
+    <h4>Mũ trắng (white hat)</h4>
+    <p>Kiểm thử an ninh <strong>có sự cho phép</strong> của chủ hệ thống: pentest theo hợp đồng, báo cáo lỗ hổng có trách nhiệm (responsible disclosure), CTF. Nghề hợp pháp.</p>
+  </div>
+  <div class="card danger">
+    <h4>Mũ đen (black hat)</h4>
+    <p>Xâm nhập, đánh cắp, phá hoại <strong>không được phép</strong>. "Mũ xám" (gray hat) — tiết lộ lỗ hổng không xin phép — vẫn vi phạm pháp luật.</p>
+  </div>
+</div>
+
+<div class="card warn">
+  <h4>⚠️ Cảnh báo pháp lý</h4>
+  <p>Ở Việt Nam, tấn công hệ thống, đánh cắp dữ liệu, làm gián đoạn dịch vụ của người khác có thể bị truy cứu theo <strong>Điều 287, 288, 291 Bộ luật Hình sự 2015</strong> và <strong>Luật An ninh mạng 2018</strong> — hình phạt nặng, kể cả khi "chỉ thử xem". Quy tắc vàng: <strong>chỉ tác động đến hệ thống bạn sở hữu hoặc được cho phép bằng văn bản.</strong> Chi tiết: <code>docs/01-phap-ly-va-dao-duc.md</code>, <code>docs/06-polite-scraping.md</code>.</p>
+</div>
+
+<h3>An toàn thông tin trong SecLab</h3>
+
+<p>Chuỗi lệnh mở đầu mọi bài thực hành:</p>
+
+<pre class="cmd"><span class="cmt"># 1. Khởi động lab cục bộ — không đụng Internet</span>
+node src/cli.js serve --port 3000
+
+<span class="cmt"># 2. Thăm dò + quét lỗ hổng — CHỈ trên 127.0.0.1</span>
+node src/cli.js recon http://127.0.0.1:3000
+node src/cli.js scan http://127.0.0.1:3000
+
+<span class="cmt"># 3. Đo tải — cảm nhận "khả dụng" trong CIA</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --rps 50 --duration 8</pre>
+
+<p>Mọi lệnh "chủ động" (recon/scan/loadtest) đều qua người gác cổng <code>src/guard.js</code>, từ chối target ngoài lab — đúng nguyên tắc "hành vi chủ động cần sự cho phép". Bài tập đầu: <code>exercises/01-khoi-dong-lab.md</code>; tra nhanh: <code>docs/04-cheat-sheet.md</code>. <span class="badge lab">lab</span></p>
+
+<div class="card ok">
+  <h4>Điểm cần nhớ</h4>
+  <ul>
+    <li>An toàn thông tin = bảo vệ đồng thời <strong>bảo mật – toàn vẹn – khả dụng</strong> (tam giác CIA); ba cạnh phải cân bằng.</li>
+    <li>Biết <strong>đối thủ</strong> — từ script kiddie đến APT — quyết định mức phòng thủ phù hợp.</li>
+    <li>Tư duy phòng thủ theo trình tự <strong>threat model → attack vector → risk</strong>: tài sản, kẻ thù, con đường, ưu tiên theo rủi ro.</li>
+    <li><strong>Defense in depth</strong>: nhiều lớp mỏng tốt hơn một bức tường — con người, mạng, ứng dụng, dữ liệu, giám sát.</li>
+    <li>Ranh giới mũ trắng/mũ đen là <strong>sự cho phép</strong>: thực hành chỉ nhắm <code>127.0.0.1</code>; ra ngoài phạm vi là nguy cơ vi phạm Điều 287 BLHS 2015.</li>
+  </ul>
+</div>
+
+</section>
+<section class="topic" id="chuong-02">
+  <h2>02 · DDoS &amp; DoS — Từ cơ chế đến phòng thủ</h2>
+
+  <p>Mọi máy chủ chỉ có tài nguyên hữu hạn: băng thông, bảng kết nối TCP, CPU, bộ nhớ và số luồng xử lý request. <strong>DoS</strong> (Denial of Service — tấn công từ chối dịch vụ) là cố tình làm cạn một tài nguyên đó để dịch vụ không còn phục vụ được người dùng hợp lệ. <strong>DDoS</strong> (Distributed DoS — DoS phân tán) là DoS khi nguồn phát tải đến từ hàng nghìn máy cùng lúc.</p>
+
+  <h3>DoS và DDoS khác nhau ở đâu?</h3>
+  <p>DoS đơn nguồn dễ bị chặn: firewall cấm đúng một địa chỉ IP là xong. Khi tải đến từ một <strong>botnet</strong> — mạng hàng nghìn máy tính, máy chủ hay thiết bị IoT bị cài mã độc từ xa — cách đó vô nghĩa: IP nguồn bị giả mạo (IP spoofing), nguồn thật phân bố khắp thế giới, băng thông nhân theo số bot, còn bộ lọc của nạn nhân phải phân biệt "tải xấu" giữa "tải tốt" trông y hệt.</p>
+
+  <h3>Ba nhóm kỹ thuật DoS</h3>
+  <p>Các nhãn <em>lớp 3/4</em> và <em>lớp 7</em> dưới đây là tầng của mô hình mạng (OSI) mà tấn công nhắm tới: <strong>lớp 3</strong> — IP (định tuyến gói tin theo địa chỉ), <strong>lớp 4</strong> — TCP/UDP (dựng và giữ kết nối), <strong>lớp 7</strong> — ứng dụng (HTTP của web). Tầng càng cao, gói tin càng "hợp lệ" với mạng nên càng phải do máy chủ tự xử lý — tức càng tốn tài nguyên để phục vụ. Nền tảng tầng mạng này được giải kỹ ở chuyên mục 06.</p>
+  <div class="grid3">
+    <div class="card">
+      <h4>Volumetric <span class="badge offense">lớp 3/4</span></h4>
+      <p>Nhắm thẳng vào <strong>băng thông</strong>. <em>UDP flood</em> bắn gói đến cổng ngẫu nhiên, buộc server trả gói "port unreachable". <em>DNS amplification</em> lợi dụng máy chủ DNS công khai: gửi truy vấn nhỏ với IP nguồn giả, nhận phản hồi lớn gấp nhiều lần — 1 byte từ bot tạo ra 50–70 byte dội về nạn nhân.</p>
+    </div>
+    <div class="card">
+      <h4>Protocol <span class="badge offense">lớp 3/4</span></h4>
+      <p>Nhắm vào <strong>protocol state</strong>. <em>SYN flood</em> gửi SYN mà không hoàn tất bắt tay, để kết nối "nửa mở" (half-open) dồn đầy bảng của server. <em>Ping of Death</em> là dạng lịch sử: gói ICMP quá khổ làm lỗi stack mạng cũ, ngày nay đã vá gần hết.</p>
+    </div>
+    <div class="card">
+      <h4>Application-layer <span class="badge offense">lớp 7</span></h4>
+      <p>Nhắm vào <strong>chi phí xử lý ứng dụng</strong>, dùng băng thông rất ít. <em>HTTP flood</em> lặp lại request vào endpoint đắt tiền (tìm kiếm, báo cáo). <em>Slowloris</em> mở nhiều kết nối TCP nhưng chỉ gửi một nửa HTTP header, khiến server "lễ phép" chờ header còn lại — nguyên lý ở <code>src/modules/slowloris.js:1-9</code>.</p>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Nhóm</th><th>Tài nguyên bị cạn</th><th>Ví dụ</th><th>Dấu hiệu nhận biết</th></tr>
+    <tr><td>Volumetric</td><td>Băng thông đường truyền</td><td>UDP flood, DNS amplification</td><td>Gbit/s khổng lồ, gói rác không hợp lệ</td></tr>
+    <tr><td>Protocol</td><td>Bảng kết nối / state</td><td>SYN flood, Ping of Death</td><td>Nhiều kết nối nửa mở, handshake treo</td></tr>
+    <tr><td>Application</td><td>CPU, worker, luồng xử lý</td><td>HTTP flood, slowloris</td><td>Latency tăng, 5xx, băng thông bình thường</td></tr>
+  </table>
+
+  <h3>Phòng thủ — một bức tường nhiều lớp</h3>
+  <p>Không có công nghệ duy nhất nào chặn được cả ba nhóm — phòng thủ là xếp chồng các hàng rào, mỗi hàng rào gắn một loại tài nguyên:</p>
+  <div class="grid2">
+    <div class="card">
+      <h4>Rate limiting (token bucket) <span class="badge defense">hàng rào lớp 7</span></h4>
+      <p>Mỗi client (thường theo IP) có một "xô" tối đa <em>capacity</em> token, được nạp lại với tốc độ <em>refillPerSec</em>. Hết token → trả <strong>429</strong> (mã HTTP "Too Many Requests" — <em>quá nhiều yêu cầu</em>; giải kỹ ở chuyên mục 06, đây cũng là mã bản hardened lab trả khi limiter chặn tải) kèm header <code>Retry-After</code> (số <em>giây</em> client nên chờ trước khi thử lại — server tự nói "đợi bao lâu thì quay lại"). Đây là kỹ thuật Cloudflare và nginx <code>limit_req</code> dùng; bản cài đặt tham khảo ở <code>src/defense/ratelimiter.js:7</code> (hàm <code>tokenBucketLimiter</code>).</p>
+    </div>
+    <div class="card">
+      <h4>SYN cookies &amp; giới hạn kết nối nửa mở <span class="badge defense">hàng rào protocol</span></h4>
+      <p>SYN cookies không giữ state cho từng SYN — thông tin bắt tay được mã hoá ngay trong số thứ tự trả về, nên bảng kết nối không thể bị dồn đầy. Ở tầng ứng dụng, bản hardened lab giới hạn kết nối nửa mở theo IP (<code>src/lab/app.js:149</code>, <code>HALF_OPEN_LIMIT = 10</code>): vượt ngưỡng là bị cắt ngay, client thật vẫn vào bình thường.</p>
+    </div>
+    <div class="card">
+      <h4>Timeout chặt <span class="badge defense">hàng rào chờ</span></h4>
+      <p>Slowloris chỉ sống được khi server chờ vô thời hạn. Bản hardened đặt <code>headersTimeout = 4s</code>, <code>requestTimeout = 10s</code> và ngắt socket idle quá 8s (<code>src/lab/app.js:362-365</code>) — kết nối "nửa request" bị đóng sớm, worker được giải phóng.</p>
+    </div>
+    <div class="card">
+      <h4>CDN &amp; anycast <span class="badge defense">hàng rào mạng</span></h4>
+      <p>Mạng CDN phân bố ở hàng trăm điểm (anycast — cùng một IP được quảng bá từ nhiều nơi, tải tự chia về trung tâm gần nhất), nên cơn bão volumetric bị hấp thụ và lọc (scrubbing) ở rìa trước khi chạm tới nguồn gốc — cách các dịch vụ lớn sống sót qua DDoS hàng Tbps.</p>
+    </div>
+  </div>
+
+  <h3>Thử nghiệm trong lab SecLab <span class="badge lab">chỉ 127.0.0.1</span></h3>
+  <p>Lab cho phép <strong>đo bằng số</strong> cả hai phía trên server bạn sở hữu. Module <code>loadtest</code> bắn một endpoint, <code>flowtest</code> mô phỏng luồng người dùng thật với think-time và ramp-up (<code>src/modules/flowload.js:1-5</code>), còn <code>slowloris</code> giữ kết nối nửa request — cả ba đều đi qua <code>guard.js</code> chặn cứng mục tiêu công khai. Chi tiết: <code>exercises/05-mo-phong-tai-va-slowloris.md</code>, <code>docs/03-dos-ddos-hieu-dung-va-phong-thu.md</code>:</p>
+  <pre class="cmd">npm run serve                          <span class="cmt"># bản vuln ở 127.0.0.1:3000 (terminal 1)</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 40 --duration 8
+npm run serve:hardened -- --port 3001  <span class="cmt"># bản đã vá ở 127.0.0.1:3001 — PHẢI chỉ định port khác (terminal 2), mặc định cũng là 3000</span>
+node src/cli.js loadtest http://127.0.0.1:3001 --path=/slow --rps 40 --duration 8
+node src/cli.js slowloris http://127.0.0.1:3000 --sockets 100 --duration 20
+node src/cli.js slowloris http://127.0.0.1:3001 --sockets 100 --duration 20</pre>
+  <p>Quan sát: bản vuln có p95 (phân vị thứ 95 — ngưỡng mà 95% request nhanh hơn; bao quát cả những request chậm nhất người dùng gặp, nhạy hơn giá trị trung bình) ~ 3000 ms và thông lượng sụp vì <code>/slow</code> chiếm worker 3 giây; bản hardened nhận rừng 429 nhưng server không sập — tinh thần anti-DoS: <em>không cần "chịu được tải", chỉ cần "không chết vì tải"</em>. Bản hardened còn cắt sớm ~90/100 kết nối slowloris nhờ giới hạn nửa mở và timeout.</p>
+
+  <div class="card danger">
+    <h4>Cảnh báo pháp lý — không thể bỏ qua</h4>
+    <p>Tạo tải hay làm gián đoạn dịch vụ nhắm vào hệ thống <strong>không thuộc sở hữu hoặc không có ủy quyền bằng văn bản</strong> là vi phạm <strong>Điều 287 Bộ luật Hình sự 2015</strong> (Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, mạng viễn thông, phương tiện xử lý thông tin điện tử), khung tù cao nhất 7–12 năm khi gây thiệt hại nghiêm trọng. Toàn bộ lab bị <code>src/guard.js</code> khóa chặt vào 127.0.0.1 và mạng riêng — tìm cách né guard là phạm pháp, không phải "bypass kỹ thuật".</p>
+  </div>
+
+  <div class="card ok">
+    <h4>Điểm cần nhớ</h4>
+    <ul>
+      <li>DoS cạn tài nguyên từ một nguồn; DDoS phân tán qua botnet, nhân băng thông lên và khiến việc cấm IP đơn lẻ vô nghĩa.</li>
+      <li>Ba nhóm kỹ thuật nhắm ba loại tài nguyên: volumetric (băng thông), protocol (bảng kết nối), application-layer (chi phí xử lý) — nên phòng thủ phải nhiều lớp.</li>
+      <li>Token-bucket rate limiting, SYN cookies, giới hạn kết nối nửa mở và timeout chặt là bốn hàng rào có thể tự cài và đo ngay trong lab (<code>src/defense/ratelimiter.js</code>, <code>src/lab/app.js</code>).</li>
+      <li>HTTP flood và slowloris tiêu tốn băng thông gần bằng 0 nhưng vẫn tê liệt server — đừng đánh giá nguy hiểm qua "lượng traffic".</li>
+      <li>Chỉ thử nghiệm trên hệ thống bạn sở hữu; nhắm mục tiêu bên ngoài là hành vi bị Điều 287 BLHS 2015 trừng phạt.</li>
+    </ul>
+  </div>
+</section>
+<section class="topic" id="chuong-03">
+<h2>03 · Malware — Virus, Worm, Ransomware &amp; bạn đồng hành</h2>
+
+<p>Malware (malicious software — phần mềm độc hại) là mọi chương trình được tạo ra để gây hại, đánh cắp dữ liệu hoặc chiếm quyền điều khiển máy tính. Chương này giúp bạn nhận diện các họ malware, hiểu cơ chế lan truyền ở mức khái niệm và xây dựng phòng thủ nhiều tầng — chỉ để phòng thủ, không tạo malware.</p>
+
+<h3>1. Phân loại các họ malware</h3>
+
+<table>
+<tr><th>Loại</th><th>Nó làm gì</th></tr>
+<tr><td>Virus</td><td>Bám vào file khác; kích hoạt khi ai đó mở file.</td></tr>
+<tr><td>Sâu (worm)</td><td>Tự nhân bản, tự lan qua mạng không cần ai mở file; thường qua lỗ hổng chưa vá.</td></tr>
+<tr><td>Ngựa Troa (trojan)</td><td>Ngụy trang thành phần mềm hữu ích (bản "crack", trình cài giả) để lừa người dùng tự cài.</td></tr>
+<tr><td>Mã tống tiền (ransomware)</td><td>Mã hóa dữ liệu của nạn nhân rồi đòi tiền chuộc.</td></tr>
+<tr><td>Phần mềm gián điệp (spyware)</td><td>Lén thu thập thông tin, dữ liệu cá nhân.</td></tr>
+<tr><td>Trình ghi phím (keylogger)</td><td>Ghi lại từng phím gõ để đánh cắp mật khẩu, số thẻ.</td></tr>
+<tr><td>Rootkit</td><td>Cài sâu vào hệ điều hành để ẩn mình và né bị gỡ.</td></tr>
+<tr><td>Botnet</td><td>Mạng các máy bị chiếm quyền ("máy zombie") nhận lệnh từ máy chủ điều khiển (command and control — C2); máy bạn có thể bị biến thành "tay sai" phát tán thư rác hoặc tham gia DDoS.</td></tr>
+</table>
+
+<div class="card info">
+<h4>Các họ này hay "kết hợp" với nhau</h4>
+<p>Trojan mở đường → rootkit trú ẩn → botnet nhận lệnh → ransomware thu tiền. Vì vậy đừng hỏi "virus hay worm?" — hãy nhìn hành vi của máy: tự lan thế nào, ẩn ở đâu, gây hậu quả gì.</p>
+</div>
+
+<h3>2. Cơ chế lan truyền và trú ẩn — mức khái niệm <span class="badge offense">chỉ để nhận diện</span></h3>
+
+<p>Muốn phòng được, phải biết malware vào bằng đường nào:</p>
+<ul>
+<li><strong>Thư lừa đảo (phishing):</strong> file đính kèm hoặc liên kết độc trong email giả mạo — đường vào số một của ransomware.</li>
+<li><strong>Phần mềm lậu, bản "crack":</strong> người dùng tự cài trojan vào máy mình.</li>
+<li><strong>USB:</strong> cắm qua máy công cộng rồi mang "bệnh" về nhà.</li>
+<li><strong>Lỗ hổng chưa vá:</strong> worm và botnet quét Internet tìm máy chưa cập nhật.</li>
+<li><strong>Chia sẻ mạng, ổ đĩa chung:</strong> một máy nhiễm có thể kéo cả mạng nội bộ theo.</li>
+</ul>
+<p>Về trú ẩn, malware thường: cấu hình <strong>khởi động cùng hệ điều hành</strong>, ngụy trang tên file giống file hệ thống, liên hệ về C2 để nhận lệnh, hoặc dùng rootkit để che giấu chính nó. Hiểu vậy là đủ để biết phải soi gì trong <strong>nhật ký (log)</strong> và danh sách chương trình tự khởi động khi điều tra. Khóa học không cung cấp bất kỳ mã độc hay kỹ thuật đóng gói né phát hiện nào — kiến thức này chỉ để phòng thủ.</p>
+
+<h3>3. Dấu hiệu máy đã nhiễm</h3>
+<ul>
+<li>Máy chậm bất thường, quạt quay liên tục dù không chạy gì nặng.</li>
+<li>File biến mất hoặc có đuôi file lạ kèm một file "HƯỚNG DẪN GIẢI MÃ".</li>
+<li>Quảng cáo tự bật; trang chủ trình duyệt bị đổi mà bạn không đổi.</li>
+<li>Có tiến trình (process) gửi dữ liệu khi bạn không dùng máy.</li>
+<li>Antivirus tự tắt hoặc không cập nhật được.</li>
+<li>Bạn bè nhận tin nhắn lạ do chính tài khoản của bạn gửi.</li>
+</ul>
+<p>Một dấu hiệu chưa đủ kết luận; hai trở lên là lúc quét toàn bộ và hỏi chuyên môn.</p>
+
+<h3>4. Phòng chống — lớp phòng nhiều tầng</h3>
+
+<div class="grid2">
+<div class="card">
+<h4><span class="badge defense">patch</span> Cập nhật vá lỗi</h4>
+<p>Bật tự động cập nhật cho hệ điều hành, trình duyệt và mọi ứng dụng. Đa số worm xâm nhập qua lỗ hổng <em>đã có bản vá</em> — vá sớm luôn rẻ hơn sửa hậu quả.</p>
+</div>
+<div class="card">
+<h4><span class="badge defense">3-2-1</span> Nguyên tắc backup 3-2-1</h4>
+<p>Giữ <strong>3</strong> bản sao dữ liệu, trên <strong>2</strong> loại thiết bị khác nhau, với <strong>1</strong> bản ngoài tuyến (offline). Bản offline là lá chắn cuối cùng: ransomware mã hóa được cả máy nhưng không chạm tới nó.</p>
+</div>
+<div class="card">
+<h4><span class="badge defense">least privilege</span> Quyền tối thiểu</h4>
+<p>Dùng tài khoản thường cho công việc hằng ngày, chỉ nâng quyền khi thật cần. Malware chạy với quyền của bạn — bạn không phải quản trị viên thì nó cũng khó cài sâu và lan rộng.</p>
+</div>
+<div class="card">
+<h4><span class="badge defense">EDR</span> Antivirus / EDR + cảnh giác phishing</h4>
+<p>Bật bảo vệ thời gian thực (antivirus, tốt hơn là EDR — endpoint detection and response) và đừng tắt. Không mở đính kèm lạ, kiểm tra kỹ người gửi, nghi ngờ mọi email ép bạn "hành động ngay".</p>
+</div>
+</div>
+
+<div class="card danger">
+<h4>Nếu nghi nhiễm ransomware</h4>
+<p>Ngắt mạng ngay để chặn mã hóa lan sang máy khác. Không trả tiền chuộc — không ai đảm bảo được giải mã, và tiền chuộc nuôi tiếp tội phạm. Báo bộ phận IT hoặc cơ quan chức năng, rồi khôi phục từ bản backup sạch.</p>
+</div>
+
+<div class="card warn">
+<h4>Ranh giới pháp lý</h4>
+<p>Tạo và phát tán malware là tội phạm: <strong>Điều 287 Bộ luật Hình sự 2015</strong> (sửa đổi 2017) — Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, mạng viễn thông, phương tiện xử lý thông tin điện tử — phạt tù nhiều năm với hành vi làm hỏng chương trình, phá hoại dữ liệu, cản trở hệ thống. Chỉ nghiên cứu mẫu trong môi trường cô lập (sandbox) bạn sở hữu; tuyệt đối không "thử" lên máy của người khác.</p>
+</div>
+
+<h3>5. Thực hành trong SecLab <span class="badge lab">127.0.0.1</span></h3>
+<p>Malware không phải chủ đề bạn "chạy thử" được, nhưng lab SecLab — chỉ chạy trên máy của chính bạn — là nơi rèn thói quen làm cứng mục tiêu.</p>
+<pre class="cmd"><span class="cmt"># Khởi động lab ứng dụng</span>
+npm run serve
+<span class="cmt"># Quét lỗ hổng — cánh cửa malware có thể bước vào</span>
+node src/cli.js scan http://127.0.0.1:3000
+<span class="cmt"># Chạy bản đã vá và so sánh — giảm bề mặt tấn công</span>
+npm run serve:hardened</pre>
+<p>Botnet là thứ biến máy nạn nhân thành "đạn" cho các cuộc tải trọng bạn mô phỏng bằng <code>loadtest</code> và <code>flowtest</code> (<code>exercises/04-tan-cong-lab.md</code>, <code>exercises/05-mo-phong-tai-va-slowloris.md</code>). Hoàn thành <code>exercises/06-phong-thu-va-bao-cao.md</code> và đọc <code>docs/03-dos-ddos-hieu-dung-va-phong-thu.md</code> để thấy hậu quả khi hàng nghìn máy nhiễm botnet đồng loạt gửi request.</p>
+
+<div class="card ok">
+<h4>Điểm cần nhớ</h4>
+<ul>
+<li>Malware là cả gia đình: virus cần người mở file, worm tự lan, trojan lừa cài, ransomware tống tiền, botnet biến máy bạn thành tay sai.</li>
+<li>Đường vào số một là con người: phishing và phần mềm lậu — đừng bấm bừa.</li>
+<li>Backup 3-2-1 với một bản offline là bảo hiểm duy nhất thực sự cứu bạn khỏi ransomware.</li>
+<li>Vá lỗi sớm + quyền tối thiểu + antivirus/EDR luôn bật = ba lớp giáp rẻ nhất.</li>
+<li>Tạo hay phát tán malware vi phạm Điều 287 BLHS 2015 — kiến thức này chỉ dùng để phòng thủ và nhận diện.</li>
+</ul>
+</div>
+</section>
+<section class="topic" id="chuong-04">
+<h2><span class="num">04</span> · Xâm nhập Web — OWASP Top 10 qua lăng kính lab SecLab</h2>
+
+<p>Khác với tấn công Phủ nhận Dịch vụ (chuyên mục 02) nhắm vào <em>độ sẵn sàng</em>, tấn công ứng dụng web nhắm vào <em>dữ liệu và quyền kiểm soát</em>. Danh sách <strong>OWASP Top 10</strong> (Open Worldwide Application Security Project) tổng hợp mười nhóm rủi ro web phổ biến nhất. Chuyên mục này giải thích cơ chế từng nhóm, cách phòng và đối chiếu với 8 lỗ hổng được cài cố ý trong lab SecLab — <code>src/lab/app.js</code> với hai chế độ <code>vuln</code> (cố ý dễ tổn thương) và <code>hardened</code> (đã vá).</p>
+
+<div class="card danger">
+<h4>⚠️ Cảnh báo pháp lý</h4>
+<p>Toàn bộ nội dung chỉ phục vụ <strong>hiểu và phòng thủ</strong>, thực hành duy nhất trên lab tại <code>127.0.0.1</code>. Quét, dò, can thiệp hệ thống của người khác là phạm tội theo <strong>Điều 287 Bộ luật Hình sự 2015</strong> — mọi lệnh SecLab vì vậy đều kiểm duyệt mục tiêu qua <code>src/guard.js</code> và chặn cứng địa chỉ public.</p>
+</div>
+
+<h3>Cơ chế các nhóm lỗ hổng trọng tâm</h3>
+
+<ul>
+<li><span class="badge offense">SQL Injection</span> — đầu vào được nối chuỗi thẳng vào câu truy vấn, khiến dữ liệu bị CSDL hiểu nhầm là <em>lệnh</em>. Dạng <em>boolean-based</em> chèn điều kiện luôn đúng để trả về toàn bộ bảng; dạng <em>error-based</em> gây lỗi SQL để đọc thông báo lỗi, dò cấu trúc bảng.</li>
+<li><span class="badge offense">XSS</span> — Cross-Site Scripting: chèn JavaScript chạy trong trình duyệt nạn nhân. <em>Reflected</em>: input được in lại nguyên văn trong response (kể cả trang 404); <em>stored</em>: dữ liệu độc được lưu vào CSDL rồi hiện ra cho mọi người; <em>DOM-based</em>: script phía client tự chèn dữ liệu không an toàn vào DOM.</li>
+<li><span class="badge offense">IDOR</span> — Insecure Direct Object Reference, thuộc <strong>A01 Broken Access Control</strong>: tham số định danh (<code>/api/users/2</code>) được tin mà không kiểm tra người gọi có quyền — đổi số ID là đọc được dữ liệu người khác.</li>
+<li><span class="badge offense">SSRF</span> — Server-Side Request Forgery: lừa server chủ động truy cập URL do kẻ tấn công chỉ định để đọc dữ liệu nội bộ. SecLab tự chống SSRF bằng cách kiểm duyệt mục tiêu <em>hai lần</em> — tại entry (<code>src/cli.js:206</code>) và trong module quét (<code>src/modules/vulnscan.js:4</code>).</li>
+<li><span class="badge offense">Path Traversal</span> — dùng <code>../</code> "đi lên" khỏi thư mục gốc để đọc file bất kỳ trên máy chủ.</li>
+<li><span class="badge offense">Broken Authentication</span> — nhóm <strong>A07</strong>: vượt qua xác thực (nhờ SQLi ở câu đăng nhập), cookie phiên thiếu cờ bảo mật, thông báo lỗi xác thực quá chi tiết.</li>
+<li><span class="badge offense">Misconfiguration</span> — nhóm <strong>A05</strong>: stack trace lộ ra response, directory listing còn bật, thiếu bộ <strong>security headers</strong> (CSP — Content Security Policy: header ra lệnh cho trình duyệt chỉ được tải script/ảnh/style từ các nguồn được liệt kê, chặn nốt script độc chèn qua XSS; X-Frame-Options: cấm trang bị nhúng trong iframe của site khác).</li>
+</ul>
+
+<h3>Bản đồ sang 8 lỗ hổng của lab SecLab</h3>
+
+<table>
+<tr><th>Mã</th><th>Điểm tiếp xúc</th><th>Cơ chế lỗi (vuln)</th><th>Cách vá (hardened)</th></tr>
+<tr><td>LAB-01 · SQLi</td><td><code>/search?q=</code>, <code>POST /login</code></td><td>SQL nối chuỗi input (<code>src/db.js:46,68</code>)</td><td>Parameterized query + escape wildcard (<code>src/db.js:58,79</code>)</td></tr>
+<tr><td>LAB-02 · XSS</td><td><code>/search</code>, trang 404</td><td>Phản chiếu input nguyên văn (<code>src/lab/app.js:259,339</code>)</td><td>Encode HTML bằng <code>esc()</code> (<code>src/lab/app.js:27</code>) + CSP</td></tr>
+<tr><td>LAB-03 · IDOR</td><td><code>/api/users/:id</code></td><td>Trả email, apiKey cho mọi ID</td><td>401 khi chưa đăng nhập, 403 nếu không phải chủ tài khoản (<code>src/lab/app.js:274-278</code>)</td></tr>
+<tr><td>LAB-04 · Path traversal</td><td><code>/download?name=</code></td><td>Chấp nhận <code>../</code> (VFS ảo, an toàn)</td><td>Từ chối <code>..</code>, bắt buộc tiền tố <code>files/</code> (<code>src/lab/app.js:293</code>)</td></tr>
+<tr><td>LAB-05 · Headers/cookie</td><td>Mọi response, <code>Set-Cookie</code></td><td>Thiếu headers; cookie không cờ bảo mật</td><td><code>securityHeaders()</code> + <code>HttpOnly/SameSite</code> (<code>src/lab/app.js:123,237-238</code>)</td></tr>
+<tr><td>LAB-06 · Rate limit</td><td>Toàn trang</td><td>Không giới hạn tần suất</td><td>Token bucket middleware (<code>src/lab/app.js:113,124</code>)</td></tr>
+<tr><td>LAB-07 · ủy quyền</td><td><code>/admin</code></td><td>Không kiểm tra gì cả</td><td>Kiểm tra <code>role === 'admin'</code> trên server (<code>src/lab/app.js:310-312</code>)</td></tr>
+<tr><td>LAB-08 · Verbose error</td><td>Mọi exception</td><td>Lộ stack trace</td><td>Log nội bộ, trang lỗi chung chung (<code>src/lab/app.js:132-141</code>)</td></tr>
+</table>
+
+<h3>Bốn trụ cột phòng thủ</h3>
+
+<div class="grid2">
+<div class="card ok">
+<h4><span class="badge defense">1</span> Parameterized query</h4>
+<p>SQL giữ chỗ <code>?</code>, giá trị truyền <em>riêng biệt</em> — CSDL không bao giờ trộn lẫn lệnh và dữ liệu. Trong lab: <code>searchUsersSafe()</code>, <code>loginSafe()</code> (<code>src/db.js:55,77</code>). Nguyên tắc vàng: <strong>không nối chuỗi input vào SQL</strong>.</p>
+</div>
+<div class="card ok">
+<h4><span class="badge defense">2</span> Output encoding</h4>
+<p>Trước khi in dữ liệu động ra HTML, mã hoá ký tự đặc biệt (<code>&lt; &gt; &amp; " '</code>) theo đúng ngữ cảnh — hàm <code>esc()</code> (<code>src/lab/app.js:27</code>). Khi đó script chèn vào chỉ hiện như văn bản; kết hợp CSP để chặn nốt nguồn script ngoài.</p>
+</div>
+<div class="card ok">
+<h4><span class="badge defense">3</span> Kiểm tra quyền trên server</h4>
+<p>Mọi endpoint tự hỏi "đối tượng này thuộc về ai?" dựa trên <em>phiên đăng nhập phía server</em>, không tin tham số URL. Bản hardened trả 401/403 (<code>src/lab/app.js:274-278</code>); thông báo sai mật khẩu viết chung chung để không dò ra tài khoản hợp lệ.</p>
+</div>
+<div class="card ok">
+<h4><span class="badge defense">4</span> Allowlist</h4>
+<p>Chỉ chấp nhận giá trị trong <strong>danh sách trắng</strong>: đường dẫn tải file phải bắt đầu bằng <code>files/</code> và không chứa <code>..</code>; mục tiêu quét phải thuộc phạm vi ủy quyền (loopback tự do, dải riêng cần <code>--i-own-this-target</code>, public chặn). Từ chối mặc định phần còn lại — hiệu quả với cả SSRF lẫn path traversal.</p>
+</div>
+</div>
+
+<h3>Quan sát bằng lệnh scan</h3>
+
+<pre class="cmd">npm run serve                                  <span class="cmt"># lab vuln :3000</span>
+node src/cli.js scan http://127.0.0.1:3000     <span class="cmt"># quét SQLi, XSS, IDOR, headers…</span>
+npm run serve:hardened -- --port 3001          <span class="cmt"># bản đã vá — bắt buộc port khác để chạy song song</span>
+node src/cli.js scan http://127.0.0.1:3001     <span class="cmt"># so sánh trước/sau vá</span></pre>
+
+<p><span class="badge lab">lab</span> Scanner <code>src/modules/vulnscan.js</code> chỉ gửi probe kiểm chứng: so số dòng kết quả giữa hai giá trị tìm kiếm để phát hiện SQLi boolean-based (<code>src/modules/vulnscan.js:9</code>), kiểm tra security headers còn thiếu (<code>src/modules/vulnscan.js:73</code>). Mỗi finding kèm mức độ, bằng chứng, cách vá; báo cáo .md/.html ghi vào <code>reports/</code> (<code>src/cli.js:227</code>). Bản vuln cho thấy finding High (SQLI-001/002, XSS-001/002) và Medium (headers, cookie); cùng lệnh trên bản hardened hầu hết chuyển sang "Đạt" — vì vá nằm ở lớp server-side, đúng chỗ dữ liệu và lệnh trộn lẫn. Làm sâu hơn theo <code>exercises/03-quet-lo-hong.md</code>, <code>exercises/04-tan-cong-lab.md</code> và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+
+<div class="card ok">
+<h4>Điểm cần nhớ</h4>
+<ul>
+<li>SQL Injection, XSS, IDOR, SSRF, Path Traversal chung một gốc: <strong>dữ liệu người dùng bị coi là lệnh hoặc tin tưởng quá mức</strong> — vá ở điểm trộn dữ liệu/lệnh, đừng chỉ lọc payload.</li>
+<li>Bốn trụ cột phòng thủ web: parameterized query, output encoding, kiểm tra quyền trên server theo phiên, allowlist.</li>
+<li>Lab chứa 8 lỗ hổng LAB-01→LAB-08 trong <code>src/lab/app.js</code>; <code>node src/cli.js scan</code> trên cả hai chế độ cho thấy khác biệt trước/sau vá.</li>
+<li>Security headers, cờ cookie, rate limit chỉ là lớp bổ sung, không thay thế bốn trụ cột.</li>
+<li>Thực hành chỉ trên 127.0.0.1; quét hay khai thác hệ thống người khác vi phạm Điều 287 BLHS 2015.</li>
+</ul>
+</div>
+</section>
+<section class="topic" id="chuong-05">
+<h2><span class="num">05</span> · Xác thực, Mật khẩu &amp; Mã hóa nền tảng</h2>
+
+<p>Mọi hệ thống bắt đầu bằng hai câu hỏi: <strong>"bạn là ai?"</strong> (xác thực — authentication) và <strong>"bạn được làm gì?"</strong> (phân quyền — authorization). Rất nhiều sự cố rò rỉ không đến từ mã hóa bị bẻ gãy, mà từ những quyết định sai ở tầng nền tảng này: mật khẩu lưu sai cách, phiên đăng nhập thiếu bảo vệ, quyền cấp rộng hơn mức cần.</p>
+
+<h3>Vì sao không bao giờ lưu mật khẩu dạng plain text</h3>
+
+<p>Khi CSDL bị lộ, mật khẩu để nguyên dạng văn bản (plain text) đồng nghĩa kẻ xấu đăng nhập được ngay mọi tài khoản — và vì người dùng thường tái sử dụng mật khẩu, còn mở khóa được cả tài khoản ở dịch vụ khác. Giải pháp là không lưu mật khẩu mà chỉ lưu <em>băm (hash)</em>: đầu ra một chiều của một hàm toán học, không thể suy ngược đầu vào. Tuy nhiên, MD5 hay SHA-256 được thiết kế để <em>nhanh</em> — GPU thử hàng tỷ phép mỗi giây — nên bản băm trần vẫn bị dò ngược ồ ạt nhờ bảng băm có sẵn (rainbow table). Chuẩn đúng là hàm băm chậm chống vét cạn (key derivation function — KDF) như bcrypt hay Argon2id, có hệ số chi phí (work factor) tăng được theo thời gian — khiến dò ngược tốn gấp hàng tỷ lần.</p>
+
+<table>
+  <tr><th>Cách lưu mật khẩu</th><th>Khi CSDL bị lộ</th><th>Đánh giá</th></tr>
+  <tr><td>Plain text</td><td>Tất cả tài khoản mất ngay lập tức</td><td>Cấm tuyệt đối</td></tr>
+  <tr><td>MD5 / SHA-256 không salt</td><td>Dò ồ ạt bằng rainbow table và GPU</td><td>Chưa đạt chuẩn</td></tr>
+  <tr><td>bcrypt / Argon2id + salt</td><td>Phải dò từng tài khoản riêng, mỗi bản hàng giờ</td><td>Chuẩn hiện nay</td></tr>
+</table>
+
+<p>Lab SecLab khởi tạo bảng <code>users</code> bằng SHA-256 không salt tại <code>src/db.js:16,39</code> — tốt hơn plain text, nhưng chủ ý để lộ khoảng cách tới bcrypt/Argon2id. <strong>Lưu ý quan trọng: khoảng cách này vẫn ngỏ ở bản hardened</strong> — <code>loginSafe()</code> (<code>src/db.js:77-81</code>) vẫn băm cùng một hàm SHA-256 như bản vuln, và mục "lưu mật khẩu" không nằm trong bảng 8 lỗ hổng LAB-01→08 của chuyên mục 04. Nói cách khác, bản hardened <em>không</em> vá điểm này: nâng lên chuẩn bcrypt/Argon2id (thư viện ngoài, Node không có sẵn) là bài tập mở rộng dành cho bạn.</p>
+
+<h3>Salt và pepper: hai lớp khác nhau</h3>
+
+<p><em>Muối (salt)</em> là chuỗi ngẫu nhiên riêng cho từng người dùng, gắn vào mật khẩu trước khi băm rồi lưu công khai cạnh bản băm. Nhờ đó, hai người cùng mật khẩu cho ra hai giá trị khác nhau và rainbow table trở nên vô dụng. <em>Tiêu (pepper)</em> là bí mật dùng chung toàn hệ thống, <strong>không</strong> lưu trong CSDL mà nằm ở biến môi trường hoặc dịch vụ quản lý khóa. Kẻ xấu lấy được CSDL vẫn chưa đọc được pepper, nên bản băm tiếp tục vô nghĩa trừ khi họ đồng thời chiếm được máy chủ.</p>
+
+<h3>MFA/2FA — yếu tố thứ hai</h3>
+
+<p>Xác thực đa yếu tố (multi-factor authentication — MFA) yêu cầu kết hợp hai trong ba loại: cái bạn <em>biết</em> (mật khẩu), cái bạn <em>có</em> (mã một lần OTP từ ứng dụng xác thực TOTP — Time-based One-Time Password: ứng dụng sinh mã 6 chữ số dựa trên thời gian và một bí mật chia sẻ với máy chủ, làm mới mỗi 30 giây — hay khóa phần cứng như YubiKey), cái bạn <em>là</em> (vân tay, khuôn mặt). Dù mật khẩu bị đánh cắp, kẻ xấu vẫn thiếu yếu tố thứ hai. Mã OTP qua SMS an toàn thấp hơn vì dễ bị lừa đảo chuyển tiếp SIM; khóa phần cứng kháng phishing là lựa chọn mạnh nhất.</p>
+
+<h3>Session cookie hay JWT?</h3>
+
+<p>Sau đăng nhập, trạng thái "đã xác thực" được giữ theo hai mẫu thiết kế. <strong>Phiên (session) + cookie</strong>: cookie chỉ chứa số định danh ngẫu nhiên (sid), máy chủ giữ bảng ánh xạ sid → người dùng — trong lab là một <code>Map</code> tại <code>src/lab/app.js:111</code> — và có thể hủy phiên bất cứ lúc nào. <strong>JWT (JSON Web Token)</strong>: token tự mô tả, được ký số, máy chủ không cần tra cứu — nhưng thu hồi trước hạn rất khó, token rò rỉ sống đến hết hạn. Cookie phiên của lab bản vuln không kèm cờ bảo mật; bản hardened thêm <code>HttpOnly; SameSite=Strict</code> tại <code>src/lab/app.js:237-238</code> (LAB-05). Thiếu HttpOnly, JavaScript độc (qua lỗi XSS) đọc được cookie phiên; thiếu SameSite, cookie phiên có thể bị lợi dụng trong CSRF (Cross-Site Request Forgery): bạn đang đăng nhập vào một site, một site khác khiến trình duyệt gửi request tới site đó — và trình duyệt tự kèm cookie phiên theo; SameSite=Strict chặn việc gửi cookie trong những request đến từ site khác.</p>
+
+<h3>Least privilege — quyền hạn tối thiểu</h3>
+
+<p>Nguyên tắc quyền hạn tối thiểu (least privilege): mỗi người dùng, dịch vụ, tiến trình chỉ nhận đúng quyền tối thiểu cần thiết, và theo mặc định bị từ chối (deny-by-default) mọi thứ chưa được cấp phép. Trong lab, mọi lệnh chủ động đi qua cổng kiểm duyệt <code>src/guard.js</code>: loopback tự do, dải IP riêng cần cờ <code>--i-own-this-target</code>, Internet public từ chối cứng — least privilege áp cho chính công cụ. Ngược lại, <code>/api/users/:id</code> bản vuln quên kiểm tra quyền đọc hồ sơ (LAB-03, IDOR): đổi số ID là đọc được dữ liệu người khác — nhóm lỗi phổ biến nhất trong OWASP Top 10.</p>
+
+<h3>HTTPS/TLS hoạt động thế nào</h3>
+
+<p>Giao thức bảo vệ truyền tải (Transport Layer Security — TLS) dựng kênh mã hóa giữa trình duyệt và máy chủ qua một <em>vòng tay bắt tay (handshake)</em>: hai bên thương lượng bộ mật mã, máy chủ trình <em>chứng chỉ số (digital certificate)</em> chứa khóa công khai, và trình duyệt kiểm tra chứng chỉ được bên thứ ba tin cậy — <em>nhà cấp phát chứng chỉ (Certificate Authority — CA)</em> — ký, trỏ đúng tên miền. Kết quả: dữ liệu không đọc được khi bị nghe trộm, không sửa được khi đi qua, và có bằng chứng bạn đang nói chuyện với đúng máy chủ. HTTPS là HTTP chạy trên TLS, chứng chỉ phát hành miễn phí qua Let's Encrypt — không có HTTPS ngày nay là lỗi cấu hình.</p>
+
+<h3>Các kiểu tấn công mật khẩu và cách phòng chống</h3>
+
+<p>Nhận diện đúng cơ chế giúp chọn đúng phòng thủ:</p>
+
+<table>
+  <tr><th>Kiểu tấn công</th><th>Cơ chế</th><th>Phòng chống <span class="badge defense">defense</span></th></tr>
+  <tr><td>Vét cạn (brute force) <span class="badge offense">offense</span></td><td>Thử mọi tổ hợp ký tự; mật khẩu càng ngắn càng chóng thất bại</td><td>Mật khẩu dài ≥ 14 ký tự, KDF chậm, giới hạn số lần thử sai</td></tr>
+  <tr><td>Dồn bằng chứng đã lộ (credential stuffing) <span class="badge offense">offense</span></td><td>Thử hàng triệu cặp email:mật khẩu rò rỉ từ dịch vụ khác, tận dụng việc người dùng tái sử dụng mật khẩu</td><td>Mật khẩu duy nhất cho từng dịch vụ, MFA, cảnh báo đăng nhập bất thường</td></tr>
+  <tr><td>Lừa đảo (phishing) <span class="badge offense">offense</span></td><td>Giả trang đăng nhập để nạn nhân tự giao mật khẩu, thậm chí cả mã OTP</td><td>Kiểm tra tên miền, đào tạo nhận diện, khóa phần cứng kháng phishing</td></tr>
+</table>
+
+<p>Công cụ cá nhân hiệu quả nhất là trình quản lý mật khẩu (password manager): sinh và nhớ mật khẩu ngẫu nhiên duy nhất cho từng dịch vụ, bạn chỉ cần thuộc một mật khẩu chính dài. Nó triệt tiêu credential stuffing tận gốc — vì không còn mật khẩu nào bị tái sử dụng.</p>
+
+<p>Trong lab, bản hardened đấu nối limiter token bucket (20 token, nạp 4/giây, trả <code>429</code> khi cạn) tại <code>src/lab/app.js:113,124</code> — vũ khí chống vét cạn mà bản vuln để mặc kị (LAB-06). Khởi động <code>node src/cli.js serve</code>, thử đăng nhập ở <code>/login</code> (LAB-01 — SQLi bypass: cửa xác thực bị vượt từ hướng khác), rồi chạy bản hardened ở port khác (<code>node src/cli.js serve --hardened --port 3001</code>) và quét lại bằng <code>node src/cli.js scan http://127.0.0.1:3001</code> để so sánh. Bài tập đi kèm trong <code>exercises/04-tan-cong-lab.md</code> và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+
+<div class="card warn">
+<h4>⚠️ Cảnh báo pháp lý</h4>
+<p>Dò mật khẩu, thử bằng chứng đăng nhập rò rỉ hay lừa đảo lấy thông tin xác thực của hệ thống bạn <strong>không sở hữu</strong> là hành vi phạm tội — có thể cấu thành tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính theo <strong>Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017)</strong> hoặc tội đưa hoặc sử dụng trái phép thông tin mạng máy tính, mạng viễn thông theo Điều 288, vi phạm <strong>Luật An ninh mạng 2018</strong>. Mọi thực hành giới hạn trong lab tại <code>127.0.0.1</code> — <code>src/guard.js</code> từ chối mọi mục tiêu công khai.</p>
+</div>
+
+<div class="card ok">
+<h4>Điểm cần nhớ</h4>
+<ul>
+<li>Không bao giờ lưu mật khẩu plain text; dùng bcrypt/Argon2id với salt riêng từng người dùng, cân nhắc thêm pepper ngoài CSDL.</li>
+<li>MFA biến mật khẩu bị lộ từ "thảm họa" thành "sự phiền"; ưu tiên ứng dụng xác thực hoặc khóa phần cứng thay vì SMS-OTP.</li>
+<li>Cookie phiên cần cờ HttpOnly/Secure/SameSite; JWT tiện nhưng khó thu hồi — chọn mẫu thiết kế theo nhu cầu hủy phiên.</li>
+<li>Least privilege và deny-by-default là rào chắn cuối cùng: thiếu kiểm tra quyền gây ra nhiều sự cố hơn mã hóa yếu.</li>
+<li>Mật khẩu duy nhất nhờ password manager, HTTPS mọi nơi — và mọi thử nghiệm chỉ trên lab của chính mình.</li>
+<li>Lab (kể cả bản hardened) vẫn lưu mật khẩu bằng SHA-256 không salt — chuẩn bcrypt/Argon2id là <strong>bài tập bạn phải tự vá</strong>, không phải thứ lab đang áp dụng.</li>
+</ul>
+</div>
+</section>
+<section class="topic" id="chuong-06">
+<h2>06 · Mạng &amp; Giao thức — Nền tảng bắt buộc của nghề</h2>
+
+<p>An toàn thông tin không bắt đầu bằng công cụ, mà bắt đầu từ câu hỏi: <em>dữ liệu đi từ máy này sang máy kia bằng đường nào?</em> Trinh sát (reconnaissance), quét lỗ hổng, DDoS, tường lửa — tất cả đều là sự kiện ở tầng mạng. Nắm được nền tảng này, các mô-đun của SecLab đọc lên rõ ràng; bỏ qua nó, bạn chỉ chạy lệnh mà không biết mình đang làm gì.</p>
+
+<h3>TCP/IP: ngôn ngữ chung của Internet</h3>
+
+<p>TCP/IP là bộ quy tắc giao tiếp (protocol) mà mọi thiết bị dùng để trao đổi. Dữ liệu được cắt thành các <strong>gói tin</strong> (packet), mỗi gói mang <strong>địa chỉ IP</strong> (IP address) của đích — ví dụ <code>127.0.0.1</code> luôn nghĩa là "chính máy này" (loopback). Tầng IP giao tới đúng nhà; <strong>TCP</strong> (Transmission Control Protocol) giao tới <em>đúng thứ tự, không mất mát</em> nhờ <strong>bắt tay ba bước</strong> (three-way handshake): khách gửi SYN, chủ đáp SYN-ACK, khách xác nhận ACK. Ngược lại, <strong>UDP</strong> không bắt tay: nhanh, nhẹ, nhưng không bảo đảm — tính "gửi xong quên" đó là nền của UDP flood trong <code>docs/03-dos-ddos-hieu-dung-va-phong-thu.md</code>.</p>
+
+<p>Mô hình <strong>client–server</strong>: bên chủ động kết nối là máy khách, bên lắng nghe và phản hồi là máy chủ. Một máy chủ chạy nhiều dịch vụ cùng lúc, phân biệt bằng <strong>cổng</strong> (port) — số 0–65535 gắn sau địa chỉ IP. Bạn đã dùng nó mỗi lần mở <code>http://127.0.0.1:3000</code>: cổng 3000 là nơi <code>src/lab/serve.js</code> lắng nghe. Vài cổng chuẩn cần thuộc:</p>
+
+<table>
+<tr><th>Cổng</th><th>Dịch vụ</th><th>Ghi chú nghề nghiệp</th></tr>
+<tr><td>22</td><td>SSH</td><td>Quản trị từ xa — cổng nhạy cảm</td></tr>
+<tr><td>53</td><td>DNS</td><td>Phân giải tên miền thành IP</td></tr>
+<tr><td>80 / 443</td><td>HTTP / HTTPS</td><td>Web thường / web mã hoá qua TLS</td></tr>
+<tr><td>3306 / 5432</td><td>MySQL / PostgreSQL</td><td>Không bao giờ mở ra Internet công cộng</td></tr>
+</table>
+
+<h3>DNS và HTTP/HTTPS</h3>
+
+<p>Con người nhớ tên miền, máy tính cần số IP. <strong>DNS</strong> (Domain Name System) là "danh bạ Internet" biến <code>example.com</code> thành địa chỉ — một truy vấn vô hình trước mỗi lần mở trang web. Vì đứng trước mọi kết nối, DNS cũng là điểm tấn công kinh điển: đánh lừa DNS (DNS spoofing) đưa người dùng tới máy chủ giả.</p>
+
+<p><strong>HTTP</strong> (HyperText Transfer Protocol) là giao thức giữa trình duyệt và web server, làm việc theo cặp <strong>yêu cầu – phản hồi</strong> (request–response): dòng đầu ghi phương thức và đường dẫn (vd <code>GET /api/users/2</code>), tiếp theo là <strong>tiêu đề</strong> (header) và <strong>thân</strong> (body). Mã trạng thái (status code) tóm tắt kết quả: 200 thành công, 403 bị cấm, 404 không thấy, 500 lỗi máy chủ — và <strong>429 "quá nhiều yêu cầu"</strong>, mã hardened lab trả khi rate limiter chặn tải. <strong>HTTPS</strong> chỉ là HTTP bọc trong <strong>TLS</strong> (Transport Layer Security): mã hoá, xác thực máy chủ bằng chứng chỉ số, bảo đảm toàn vẹn — vì vậy Wireshark bắt gói HTTPS chỉ thấy dữ liệu đã mã hoá, còn <code>src/defense/headers.js</code> cài HSTS (HTTP Strict Transport Security — header ra lệnh cho trình duyệt từ nay chỉ truy cập site này bằng HTTPS, bỏ HTTP không mã hoá).</p>
+
+<h3>Ba công cụ quan sát hợp pháp</h3>
+
+<div class="grid2">
+  <div class="card info">
+    <h4>curl — gửi HTTP thủ công <span class="badge defense">quan sát</span></h4>
+    <p>Cách nhanh nhất để "thấy" giao dịch HTTP trần trụi: tự soạn yêu cầu, đọc nguyên phản hồi. Recon và vulnscan của SecLab về bản chất là curl được tự động hoá.</p>
+  </div>
+  <div class="card info">
+    <h4>Wireshark — bắt gói tin <span class="badge defense">quan sát</span></h4>
+    <p>Chụp gói tin trên <strong>card mạng của chính bạn</strong> để xem bắt tay TCP, truy vấn DNS, kết nối TLS diễn ra thế nào — chỉ với lưu lượng bạn có quyền nhìn.</p>
+  </div>
+</div>
+
+<div class="card info">
+  <h4>Nmap — quét cổng và dịch vụ <span class="badge defense">đo đạc</span></h4>
+  <p>Nmap gửi gói kết nối thử để hỏi "máy này đang mở những cổng nào". <strong>Chỉ được dùng trên hệ thống bạn sở hữu hoặc có ủy quyền bằng văn bản</strong> — quét trái phép có thể bị coi là cản trở. Thực hành trên lab <code>127.0.0.1</code> hoặc máy chủ cho phép công khai của Nmap (<code>scanme.nmap.org</code>), đúng tinh thần "quét chỉ khi được phép" trong <code>exercises/02-recon.md</code>.</p>
+</div>
+
+<pre class="cmd"><span class="cmt"># curl: gửi yêu cầu GET tới lab của chính bạn (npm run serve trước đã)</span>
+curl -i http://127.0.0.1:3000/api/users/2
+
+<span class="cmt"># chỉ xem dòng trạng thái + tiêu đề phản hồi</span>
+curl -I http://127.0.0.1:3000/headers
+
+<span class="cmt"># đối chiếu: recon của SecLab chính là các yêu cầu HTTP được gói lại</span>
+node src/cli.js recon http://127.0.0.1:3000
+
+<span class="cmt"># quét Nmap trên máy của chính mình — nơi duy nhất bạn có quyền mặc định</span>
+nmap -sV 127.0.0.1
+
+<span class="cmt"># mọi mô-đun còn lại của lab cũng chỉ là HTTP trên TCP này</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=slow --rps 40 --duration 8
+node src/cli.js flowtest http://127.0.0.1:3000
+<span class="cmt"># crawl ngược chiều: cho phép site công khai nhưng CHẶN loopback — cần cờ sở hữu</span>
+node src/cli.js crawl --url=http://127.0.0.1:3000 --i-own-this-target</pre>
+
+<div class="grid3">
+  <div class="card">
+    <h4>Tường lửa (firewall)</h4>
+    <p>Bộ lọc gói tin theo quy tắc: địa chỉ, cổng, chiều nào được qua. "Cửa mở – cửa đóng" đầu tiên của phòng thủ, tương tự vai trò của <code>src/defense/ratelimiter.js</code> ở tầng ứng dụng.</p>
+  </div>
+  <div class="card">
+    <h4>VPN (mạng riêng ảo)</h4>
+    <p>Đường hầm mã hoá giữa bạn và máy chủ tin cậy: giấu nội dung khỏi Wi-Fi công cộng và nhà mạng. VPN không biến bạn vô danh — nhà cung cấp VPN vẫn thấy lưu lượng.</p>
+  </div>
+  <div class="card">
+    <h4>NAT (dịch địa chỉ mạng)</h4>
+    <p>Cho nhiều máy nội bộ dùng chung một IP công cộng và che chúng khỏi kết nối trực tiếp từ bên ngoài — tiện ích, nhưng không thay thế được tường lửa.</p>
+  </div>
+</div>
+
+<p>Phòng thủ DDoS vì thế không phải một cấu hình duy nhất: tường lửa lọc tầng mạng, rate limiter lọc tầng HTTP, CDN/anti-DDoS hấp thụ tải trước khi chạm server — mạch bạn thực hành ở <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+
+<div class="card danger">
+  <h4>Ranh giới pháp lý — đọc kỹ trước khi dùng bất kỳ công cụ nào ở trên</h4>
+  <p>Wireshark, Nmap, curl đều <strong>hợp pháp khi dùng trên mạng và hệ thống của chính bạn</strong>, hoặc mục tiêu được ủy quyền. Nhìn lén lưu lượng Wi-Fi của người khác, quét hay thu thập thông tin từ hệ thống của tổ chức khác là vi phạm: Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017) xử Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, Điều 288 xử tội đưa hoặc sử dụng trái phép thông tin mạng máy tính, mạng viễn thông, Luật An ninh mạng 2018 cấm xâm nhập và cản trở hệ thống. SecLab tự giữ ranh giới này: công cụ tải chỉ chạy đầy đủ trên <code>127.0.0.1</code>, mục tiêu ngoài localhost đòi hỏi cờ <code>--i-own-this-target</code> — lời cam kết bằng lệnh rằng bạn sở hữu mục tiêu.</p>
+</div>
+
+<div class="card ok">
+  <h4>Điểm cần nhớ</h4>
+  <ul>
+    <li>TCP/IP: địa chỉ IP định đích, TCP bảo đảm tin cậy qua bắt tay ba bước, UDP nhanh nhưng không bảo đảm.</li>
+    <li>Mô hình client–server + <strong>cổng</strong>: một địa chỉ, nhiều dịch vụ — 80/443 là HTTP/HTTPS, 22 là SSH, cổng CSDL không bao giờ lộ ra ngoài.</li>
+    <li>HTTP là cặp yêu cầu–phản hồi; HTTPS chỉ là HTTP + TLS mã hoá; mã 429 chính là phản hồi phòng thủ bạn sẽ gặp ở lab hardened.</li>
+    <li>curl, Wireshark, Nmap chỉ hợp pháp trên <strong>mạng của chính bạn</strong> hoặc mục tiêu được ủy quyền — quét hay đánh chặn hệ thống người khác vi phạm Điều 287, 288 BLHS 2015.</li>
+    <li>Tường lửa lọc, VPN mã hoá đường đi, NAT chia sẻ địa chỉ — ba công cụ khác nhau, không thay thế nhau.</li>
+  </ul>
+</div>
+</section>
+<section class="topic" id="chuong-07">
+  <h2><span class="num">07</span> Pháp lý &amp; Đạo đức nghề nghiệp tại Việt Nam</h2>
+
+  <p>Đây là chuyên mục <strong>bắt buộc đọc trước</strong> mọi chuyên mục khác. Trong an toàn thông tin, ranh giới giữa "nghề" và "tội" không phải là kỹ năng — mà là <em>giấy phép</em>. Cùng một kỹ thuật đo tải: làm trên lab của bạn là học tập, làm trên server của người khác là phạm tội hình sự. Người mới cần nắm bốn văn bản pháp luật, một quy ước hành nghề và một chuẩn mực đạo đức.</p>
+
+  <div class="card danger">
+    <h4>⚠️ Cảnh báo pháp lý số 1</h4>
+    <p>Vì sao SecLab chặn cứng mọi mục tiêu public (<code>src/guard.js:98-99</code>)? Vì <strong>Điều 287 Bộ luật Hình sự 2015</strong> (sửa đổi 2017) — <em>Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, mạng viễn thông, phương tiện xử lý thông tin điện tử</em> — xử lý hành vi DoS/DDoS với khung tù cao nhất <strong>7–12 năm tù</strong> (ba khung: 6 tháng–3 năm, 3–7 năm, 7–12 năm). Không có ngoại lệ "chỉ thử 1 packet" hay "vì mục đích học".</p>
+  </div>
+
+  <h3>Bốn văn bản pháp luật phải thuộc lòng</h3>
+  <table>
+    <tr><th>Văn bản</th><th>Nội dung cốt lõi</th><th>Điều chính</th></tr>
+    <tr>
+      <td><strong>BLHS 2015 (sửa đổi 2017)</strong></td>
+      <td>Quy định tội danh cụ thể trong không gian mạng</td>
+      <td><strong>Điều 287</strong>: cản trở hoặc gây rối loạn hoạt động của mạng (DoS/DDoS, khung tù cao nhất 7–12 năm)<br><strong>Điều 288</strong>: đưa hoặc sử dụng trái phép thông tin trên mạng<br><strong>Điều 291</strong>: buôn bán, trao đổi, chiếm đoạt tài khoản số</td>
+    </tr>
+    <tr>
+      <td><strong>Luật An toàn thông tin mạng 2015</strong> (86/2015/QH13)</td>
+      <td>Khung quản lý an toàn thông tin; liệt kê hành vi bị cấm trên mạng</td>
+      <td>Điều 16: cấm xâm nhập trái phép, cản trở, làm tê liệt hoạt động của mạng</td>
+    </tr>
+    <tr>
+      <td><strong>Luật An ninh mạng 2018</strong> (24/2018/QH14)</td>
+      <td>Khung an ninh mạng quốc gia; phân loại <em>hệ thống thông tin quan trọng</em></td>
+      <td>Điều 8–9: cấm tấn công an ninh mạng, xâm nhập trái phép, làm tê liệt hệ thống</td>
+    </tr>
+    <tr>
+      <td><strong>Nghị định 13/2023/NĐ-CP</strong></td>
+      <td>Bảo vệ <em>dữ liệu cá nhân</em> (personal data) gắn với một người cụ thể</td>
+      <td>Điều 7: nguyên tắc xử lý; Điều 8: hành vi bị cấm; Điều 15: biện pháp bảo vệ</td>
+    </tr>
+  </table>
+  <p>Với người mới, điều này dịch ra một câu: <strong>quét cổng (port scan), đo tải (load test), dò lỗ hổng nhắm hệ thống của người khác mà không được phép đã là hành vi bị cấm</strong> — dù không lấy được dữ liệu nào. Thu thập dữ liệu cá nhân quy mô lớn khi cào web cũng đụng Nghị định 13/2023/NĐ-CP.</p>
+
+  <h3>Pentest được ủy quyền — cái giấy phép biến kỹ thuật thành nghề</h3>
+  <p><em>Kiểm thử xâm nhập</em> (penetration testing — pentest) là hành vi mô phỏng tấn công để tìm lỗ hổng <strong>trước khi kẻ xấu tìm thấy</strong>. Nó chỉ hợp pháp khi có đủ ba thành tố, thiếu một cái là phạm tội:</p>
+  <div class="grid3">
+    <div class="card info">
+      <h4>1 · Giấy phép bằng văn bản</h4>
+      <p>Văn bản ủy quyền ký bởi chủ sở hữu hợp pháp, ghi rõ bạn là ai, được làm gì, trong khoảng thời gian nào — tấm "thư cứu" của người làm nghề.</p>
+    </div>
+    <div class="card info">
+      <h4>2 · Phạm vi (scope)</h4>
+      <p>Danh sách chính xác: IP/domain nào, port nào được phép; cái nào bị loại trừ (thường là hệ thống sản xuất, dữ liệu khách hàng). Ra ngoài scope = tấn công không được phép.</p>
+    </div>
+    <div class="card info">
+      <h4>3 · Luật giao chiến (Rules of Engagement)</h4>
+      <p>Kỹ thuật nào được dùng, khung giờ nào được "làm ồn", xử lý sự cố và dữ liệu tìm thấy thế nào.</p>
+    </div>
+  </div>
+  <p>Ba trường hợp không cần hợp đồng riêng: hệ thống của <strong>chính bạn</strong> (lab local, VPS bạn thuê); <em>sàn tìm lỗi bảo mật</em> (bug bounty) có chính sách công khai; chương trình công bố lỗ hổng của tổ chức.</p>
+
+  <h3>Responsible disclosure — công bố lỗi một cách có trách nhiệm</h3>
+  <ol>
+    <li><strong>Báo cáo riêng tư</strong> cho chủ hệ thống qua kênh bảo mật (security@, sàn bounty) — không đăng công khai, không tống tiền.</li>
+    <li><strong>Cung cấp bằng chứng vừa đủ</strong> để tái hiện lỗi (reproduce) — không khai thác sâu thêm, không truy cập dữ liệu thật.</li>
+    <li><strong>Chờ thời hạn vá lỗi</strong> (thường 90 ngày) rồi mới công bố, và chỉ công bố sau khi có bản vá.</li>
+    <li><strong>Dữ liệu cá nhân</strong> trông thấy trong quá trình test: không lưu, không sao chép — đúng Nghị định 13/2023/NĐ-CP.</li>
+  </ol>
+
+  <h3>Đạo đức của mũ trắng (white hat ethics)</h3>
+  <div class="card warn">
+    <h4>Bốn nguyên tắc bất di bất dịch</h4>
+    <ul>
+      <li><strong>Chỉ làm trên hệ thống được phép</strong> — lệnh <code>loadtest</code> nhắm mục tiêu public bị <code>guard.js</code> từ chối cứng vì đúng nghĩa này.</li>
+      <li><strong>Gây hại tối thiểu</strong> — chứng minh lỗ hổng tồn tại, không phá hủy dữ liệu, không làm sập dịch vụ thật.</li>
+      <li><strong>Bảo mật thông tin tìm thấy</strong> — lỗ hổng và dữ liệu chỉ chia sẻ với bên ủy quyền.</li>
+      <li><strong>Báo cáo trung thực</strong> — không phóng đại mức độ nghiêm trọng, không che giấu lỗi.</li>
+    </ul>
+  </div>
+
+  <h3>Chứng chỉ nghề — lộ trình học chuẩn ngành</h3>
+  <div class="grid3">
+    <div class="card">
+      <h4>CompTIA Security+</h4>
+      <p>Chứng chỉ <em>nền móng</em> (entry-level) công nhận rộng rãi: khái niệm an toàn, quản trị rủi ro, kiến trúc phòng thủ. Trắc nghiệm, hợp lệ 3 năm — điểm khởi đầu cho người mới.</p>
+    </div>
+    <div class="card">
+      <h4>CEH (Certified Ethical Hacker)</h4>
+      <p>Chứng chỉ của EC-Council: học tư duy tấn công <strong>dưới góc nhìn phòng thủ</strong> — hiểu công cụ kẻ xấu dùng để biết cách chống. Đăng ký kèm cam kết đạo đức nghề.</p>
+    </div>
+    <div class="card">
+      <h4>OSCP</h4>
+      <p>Chứng chỉ thực chiến của Offensive Security: bài lab 24 giờ — phải xâm nhập máy ảo trong môi trường được cấp phép và viết báo cáo. Kỹ năng thật, không học vẹt.</p>
+    </div>
+  </div>
+
+  <h3>Thực hành đúng luật ngay trong SecLab</h3>
+  <p>Mọi lệnh tạo tải và quét đều qua lớp ủy quyền <code>assertAuthorizedTarget()</code> trong <code>src/guard.js</code>: loopback (<code>127.0.0.1</code>) tự do; dải riêng RFC1918 (chuẩn định nghĩa các dải IP dùng nội bộ, không định tuyến trên Internet công cộng — 10.x.x.x, 172.16.0.0–172.31.255.255, 192.168.x.x, tức mạng LAN gia đình/công ty) cần cờ <code>--i-own-this-target</code>; mục tiêu public bị <code>SecurityError</code> từ chối. Quy trình học chuẩn:</p>
+  <pre class="cmd"><span class="cmt"># 1) Khởi động lab CỐ Ý DỄ TỔN THƯƠNG — hợp pháp 100%</span>
+node src/cli.js serve
+
+<span class="cmt"># 2) Recon → scan → đo tải, toàn bộ nhắm lab local</span>
+node src/cli.js recon http://127.0.0.1:3000
+node src/cli.js scan http://127.0.0.1:3000
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps=50 --duration=8
+
+<span class="cmt"># 3) Chạy bản --hardened, scan lại, so sánh: "tấn công → vá → phòng thủ"</span></pre>
+  <p>Bài tập gắn liền: <code>exercises/01-khoi-dong-lab.md</code> (chạy thử guard), <code>exercises/06-phong-thu-va-bao-cao.md</code> (viết báo cáo — chính là "responsible disclosure" trong nghề) và <code>docs/06-polite-scraping.md</code> (ranh giới pháp lý khi <code>crawl</code> web công khai).</p>
+
+  <div class="card ok">
+    <h4>Điểm cần nhớ</h4>
+    <ul>
+      <li>Điều 287 BLHS 2015 xử lý DoS/DDoS tới <strong>7–12 năm tù</strong>; Điều 288, 291 trùm thông tin trái phép và tài khoản số.</li>
+      <li>Pentest chỉ hợp pháp khi đủ <strong>giấy phép văn bản + scope + rules of engagement</strong>; lab của chính bạn luôn an toàn nhất.</li>
+      <li>Responsible disclosure: báo riêng tư → chờ vá → mới công bố; dữ liệu cá nhân không lưu (NĐ 13/2023).</li>
+      <li>Lộ trình chứng chỉ: <strong>Security+</strong> → <strong>CEH</strong> → <strong>OSCP</strong>.</li>
+      <li>Kỹ thuật không có tính hợp pháp — <em>giấy phép mới có</em>.</li>
+    </ul>
+  </div>
+</section>
+<section class="topic" id="chuong-08">
+  <h2><span class="num">08</span>Lộ trình Học 12 tháng &amp; Thực hành Hợp pháp</h2>
+
+  <p>An toàn thông tin (Information Security) là môn học theo <em>từng lớp</em>: chưa nắm cách mạng vận hành thì không hiểu lỗ hổng, và không thể phòng thủ nổi. Người mới thường bỏ cuộc vì học lan man — hoặc tệ hơn, thử nghiệm sai cách và vướng pháp lý. Chuyên mục này gợi ý lộ trình 12 tháng, mỗi giai đoạn có đầu ra kiểm chứng được, kèm nền tảng thực hành <strong>hợp pháp</strong> và cách dùng SecLab — lab của chính bạn.</p>
+
+  <div class="card danger">
+    <h4>Quy tắc vàng: lab của mình, hoặc được phép bằng văn bản</h4>
+    <p>Mọi hoạt động quét, thử tải, kiểm tra bảo mật chỉ hợp lệ khi chạy trên hệ thống <strong>bạn sở hữu</strong> (máy ảo, localhost), môi trường lab được cấp phép, hoặc có <strong>sự cho phép bằng văn bản</strong> của chủ sở hữu. Nhắm website của người khác "chỉ để thử" là phạm pháp: tại Việt Nam, <strong>Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017)</strong> xử Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, mạng viễn thông, phương tiện xử lý thông tin điện tử, khung tù cao nhất 7–12 năm (đọc kỹ <code>docs/01-phap-ly-va-dao-duc.md</code>). SecLab biến quy tắc này thành mã nguồn: mọi lệnh tạo tải và quét đều đi qua <code>guard.js</code> — mục tiêu public bị chặn cứng, dải IP riêng bắt buộc có cờ <code>--i-own-this-target</code>, chỉ loopback (127.0.0.1) là tự do (xem phần đầu <code>src/cli.js</code>).</p>
+  </div>
+
+  <h3>Lộ trình gợi ý theo từng giai đoạn</h3>
+  <table>
+    <tr><th>Giai đoạn</th><th>Học gì</th><th>Đầu ra nên có</th></tr>
+    <tr>
+      <td><span class="badge lab">tháng 1–2</span> Mạng &amp; Linux</td>
+      <td>Mô hình OSI, TCP/IP, DNS, địa chỉ IP và subnet; dòng lệnh Linux cơ bản, phân quyền, đọc log.</td>
+      <td>Dựng được máy ảo, dùng terminal thành thạo; đọc <code>docs/02-kien-truc-cong-cu.md</code> và hoàn thành <code>exercises/01-khoi-dong-lab.md</code>.</td>
+    </tr>
+    <tr>
+      <td><span class="badge lab">tháng 3–4</span> Web &amp; lập trình cơ bản</td>
+      <td>HTML/CSS/JavaScript; cơ chế HTTP (method, status code, cookie và session); một ngôn ngữ kịch bản như Python hoặc Node.</td>
+      <td>Tự viết một trang web nhỏ; khởi động lab bằng <code>node src/cli.js serve</code> và đọc hiểu mã <code>src/lab/app.js</code>.</td>
+    </tr>
+    <tr>
+      <td><span class="badge offense">tháng 5–6</span> OWASP Top 10 qua lab</td>
+      <td>Mỗi nhóm lỗ hổng đi theo trật tự <em>khái niệm → cách phát hiện → cách vá</em>: SQL injection, XSS, IDOR, cấu hình sai, thiếu security header.</td>
+      <td>Làm xong <code>exercises/02-recon.md</code>, <code>03-quet-lo-hong.md</code>, <code>04-tan-cong-lab.md</code>; quét bản vuln rồi so sánh với bản <code>--hardened</code> đã vá.</td>
+    </tr>
+    <tr>
+      <td><span class="badge offense">tháng 7–9</span> CTF (Capture The Flag)</td>
+      <td>Giải thử thách trên picoCTF và OverTheWire (chuỗi Bandit) — môi trường thiết kế riêng cho việc học, khai thác ở đó là hợp lệ.</td>
+      <td>Qua được chục thử thách đầu tiên của Bandit, viết write-up (bài giải có diễn giải) cho từng thử thách.</td>
+    </tr>
+    <tr>
+      <td><span class="badge defense">tháng 10–12</span> Chuyên sâu lựa chọn</td>
+      <td>Chọn một hướng đi sâu: <em>web security</em> (secure coding, kiểm thử) hoặc <em>network defense</em> (rate limiting, giám sát, ứng phó sự cố).</td>
+      <td>Làm lại các bài SecLab dưới góc nhìn phòng thủ: <code>exercises/05</code>, <code>06</code>, <code>07</code>; trình bày báo cáo kèm đề xuất vá cụ thể.</td>
+    </tr>
+  </table>
+
+  <h3>Nền tảng học hợp pháp</h3>
+  <div class="grid3">
+    <div class="card info">
+      <h4>TryHackMe</h4>
+      <p>Lộ trình có hướng dẫn từng bước (guided path), thân thiện nhất với người mới; phòng lab được phép khai thác. Hợp giai đoạn tháng 1–6.</p>
+    </div>
+    <div class="card info">
+      <h4>PortSwigger Web Security Academy</h4>
+      <p>Miễn phí, chuẩn mực về web security; mỗi bài có lab riêng tập trung một lỗ hổng. Hợp tháng 5–12, nhất là nhánh web.</p>
+    </div>
+    <div class="card info">
+      <h4>HackTheBox</h4>
+      <p>Các máy lab được phép tấn công trong môi trường kiểm soát, khó hơn; hợp từ tháng 7, song song giai đoạn CTF.</p>
+    </div>
+  </div>
+  <p>Điểm chung của cả ba: "sân chơi" được chủ sở hữu cho phép trước. Sự cho phép đó — chứ không phải công cụ — là ranh giới giữa học và phạm pháp.</p>
+
+  <h3>Dùng SecLab suốt 12 tháng</h3>
+  <p>SecLab là lab web chạy trên máy bạn (bind 127.0.0.1, không mở ra bên ngoài), nên mọi lệnh đều hợp pháp mặc định. Thứ tự gợi ý:</p>
+  <pre class="cmd">node src/cli.js doctor          <span class="cmt"># kiểm tra môi trường trong buổi đầu tiên</span>
+node src/cli.js serve           <span class="cmt"># lab vuln (cố ý dễ tổn thương) tại 127.0.0.1:3000</span>
+node src/cli.js recon http://127.0.0.1:3000
+node src/cli.js scan  http://127.0.0.1:3000   <span class="cmt"># quét lỗ hổng → báo cáo ghi vào reports/</span>
+npm run serve:hardened          <span class="cmt"># bản đã vá chạy port khác — scan lại và so sánh</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 50 --duration 8
+node src/cli.js flowtest http://127.0.0.1:3000 --users 5 --iterations 10
+node src/cli.js crawl --url=https://một-site-công-khai --delay-ms 800  <span class="cmt"># cào lịch sự, tôn trọng robots.txt</span>
+node src/cli.js labs            <span class="cmt"># liệt kê các bài thực hành trong exercises/</span></pre>
+  <p>Nguồn học đi kèm: <strong>7 bài thực hành</strong> trong <code>exercises/</code> (01 khởi động lab, 02 recon, 03 quét lỗ hổng, 04 tấn công lab, 05 mô phỏng tải &amp; slowloris, 06 phòng thủ &amp; báo cáo, 07 crawl &amp; flow) và bộ tài liệu trong <code>docs/</code> — đọc <code>docs/01-phap-ly-va-dao-duc.md</code> đầu tiên, <code>03</code> và <code>04-cheat-sheet.md</code> khi vào giai đoạn tải, <code>06-polite-scraping.md</code> cho bài crawl. Chú ý lệnh <code>crawl</code> ngược chiều còn lại: cho phép site công khai (cào lịch sự) nhưng chặn loopback trừ khi có <code>--i-own-this-target</code>. Sự ngoại lệ này có cơ sở rõ ràng, không phải giấy phép đặc biệt: crawl chỉ <strong>đọc</strong> các trang công khai bằng GET chậm rãi — delay giữa hai request không thể xuống dưới 300 ms, tôn trọng robots.txt, tối đa 200 trang/sâu 5, giới hạn cùng một domain, không đăng nhập hay gửi cookie, định danh rõ ràng — về bản chất giống một người dùng lịch sự mở trang bằng trình duyệt, không gây áp lực lên tài nguyên của ai. Ngược lại, quét và tạo tải chủ động dồn tài nguyên hệ thống, nên với mục tiêu public vẫn chặn cứng không ngoại lệ. Bảng ranh giới đầy đủ: <code>docs/06-polite-scraping.md</code>.</p>
+
+  <div class="card warn">
+    <h4>Những điều không bao giờ làm — kể cả "vì mục đích học"</h4>
+    <ul>
+      <li>Quét port, gửi tải hoặc thử payload vào bất kỳ website, IP nào ngoài lab của bạn — kể cả trang của trường, công ty hay một site "nhỏ" mà bạn nghĩ sẽ chẳng ai để ý.</li>
+      <li>Chạy công cụ lên hệ thống thật không có ủy quyền; "báo lỗi bảo mật tốt bụng" cũng phải qua chương trình bug bounty hoặc thư xin phép trước.</li>
+      <li>Chia sẻ mã khai thác chạy được; hãy chia sẻ khái niệm, cách phát hiện và cách vá — đúng tinh thần giáo dục của toàn bộ giáo trình này.</li>
+    </ul>
+  </div>
+
+  <div class="card ok">
+    <h4>Điểm cần nhớ</h4>
+    <ul>
+      <li>Lộ trình 12 tháng: mạng &amp; Linux → web &amp; lập trình → OWASP Top 10 qua lab → CTF (picoCTF, OverTheWire) → chuyên sâu web security hoặc network defense.</li>
+      <li>TryHackMe, PortSwigger Web Security Academy, HackTheBox là nền tảng học hợp pháp vì mọi thử thách đều diễn ra trong môi trường được phép.</li>
+      <li>SecLab đi cùng cả lộ trình: <code>serve</code> → <code>recon</code> → <code>scan</code> → <code>loadtest</code>/<code>flowtest</code> → so sánh bản hardened; 7 bài trong <code>exercises/</code> là kế hoạch học theo tuần.</li>
+      <li>Quy tắc vàng không có ngoại lệ: lab của mình hoặc giấy phép bằng văn bản — vi phạm có thể cấu thành tội danh theo Điều 287 BLHS 2015.</li>
+      <li>Sản phẩm học là write-up và báo cáo có đề xuất vá — bằng chứng kỹ năng mà nhà tuyển dụng nhìn thấy.</li>
+    </ul>
+  </div>
+</section>
+<section class="topic" id="chuong-09">
+<h2><span class="num">09</span> · Cheat sheet lệnh &amp; quy trình làm việc</h2>
+
+<p>Trang tra nhanh của toàn bộ giáo trình: mọi lệnh của SecLab gom vào một bảng, mỗi lệnh kèm một ví dụ chạy được ngay. Quy tắc chung trước khi gõ: <strong>mọi lệnh "chủ động" (recon, scan, loadtest, flowtest, slowloris) đều qua người gác cổng <code>src/guard.js</code></strong> — loopback (<code>127.0.0.1</code>) tự do, dải IP riêng cần cờ <code>--i-own-this-target</code>, mục tiêu public bị chặn cứng. <code>crawl</code> là lệnh ngược chiều duy nhất: cho phép web công khai (cào lịch sự) nhưng chặn loopback cho tới khi có cờ sở hữu. Cơ sở pháp lý của sự khác biệt này nằm ở chuyên mục 07.</p>
+
+<h3>Quy trình làm việc chuẩn — một vòng "tấn công → vá → đối chứng" <span class="badge lab">chỉ 127.0.0.1</span></h3>
+
+<pre class="cmd">node src/cli.js doctor                                  <span class="cmt"># 0) kiểm tra môi trường + port 3000/3001 còn rảnh</span>
+npm run serve                                           <span class="cmt"># 1) lab VULN tại 127.0.0.1:3000 (terminal 1)</span>
+node src/cli.js recon http://127.0.0.1:3000             <span class="cmt"># 2) thăm dò: headers, fingerprint, robots.txt</span>
+node src/cli.js scan http://127.0.0.1:3000              <span class="cmt"># 3) quét lỗ hổng → báo cáo ghi vào reports/</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 50 --duration 8
+npm run serve:hardened -- --port 3001                   <span class="cmt"># 4) bản đã vá ở 3001 (terminal 2)</span>
+node src/cli.js scan http://127.0.0.1:3001              <span class="cmt"># 5) quét lại → đối chứng trước/sau vá</span>
+npm test &amp;&amp; npm run e2e                                 <span class="cmt"># 6) xác nhận toàn bộ kiểm thử còn xanh</span></pre>
+
+<h3>Bảng lệnh tra nhanh — mỗi lệnh một ví dụ dùng được</h3>
+
+<table>
+  <tr><th>Lệnh</th><th>Làm gì</th><th>Ví dụ</th></tr>
+  <tr><td><code>serve</code> <span class="badge offense">vuln</span></td><td>Khởi động lab web <strong>cố ý dễ tổn thương</strong>, bind 127.0.0.1, mặc định port 3000.</td><td><code>node src/cli.js serve --port 3000</code></td></tr>
+  <tr><td><code>serve:hardened</code> <span class="badge defense">đã vá</span></td><td>Cùng lab nhưng đã vá 8 lỗ hổng LAB-01→08. Mặc định cũng chạy port 3000 — <strong>phải chỉ định port khác</strong> nếu bản vuln đang chạy, nếu không sẽ gặp <code>EADDRINUSE</code>.</td><td><code>npm run serve:hardened -- --port 3001</code></td></tr>
+  <tr><td><code>recon</code></td><td>Thu thập thông tin mục tiêu: response headers, fingerprint công nghệ, quét cổng 80/443/3000…, robots.txt.</td><td><code>node src/cli.js recon http://127.0.0.1:3000</code></td></tr>
+  <tr><td><code>scan</code></td><td>Quét lỗ hổng lớp ứng dụng (SQLi, XSS, IDOR, security headers, rate limit…); báo cáo .md + .html ghi vào <code>reports/</code>.</td><td><code>node src/cli.js scan http://127.0.0.1:3000</code> — thêm <code>--json</code> để in kết quả JSON ra stdout</td></tr>
+  <tr><td><code>loadtest</code></td><td>Mô phỏng tải vào một endpoint; đo RPS thực tế và latency avg/p50/p90/p95/p99/max.</td><td><code>node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 50 --duration 8</code></td></tr>
+  <tr><td><code>flowtest</code></td><td>Mô phỏng luồng người dùng thật (trang chủ → tìm kiếm → chi tiết) có think-time và ramp-up; đo latency từng bước để thấy bước nghẽn.</td><td><code>node src/cli.js flowtest http://127.0.0.1:3000 --users 5 --iterations 10 --think 150</code></td></tr>
+  <tr><td><code>slowloris</code></td><td>Mô phỏng tấn công giữ kết nối "nửa request"; so sánh thấy bản hardened cắt sớm nhờ timeout chặt.</td><td><code>node src/cli.js slowloris http://127.0.0.1:3000 --sockets 100 --duration 20</code></td></tr>
+  <tr><td><code>crawl</code> <span class="badge offense">ngược chiều</span></td><td>Cào web <strong>lịch sự</strong>: tôn trọng robots.txt, delay ≥ 300ms giữa hai request, tối đa 200 trang/sâu 5, chỉ cùng-origin, trích title/heading/link vào <code>reports/</code>. Cho phép site public; muốn cào lab cục bộ để tập thì thêm cờ sở hữu.</td><td><code>node src/cli.js crawl --url=https://site-cong-khai.example --delay-ms 800</code> · tập trên lab: <code>node src/cli.js crawl --url=http://127.0.0.1:3000 --i-own-this-target</code></td></tr>
+  <tr><td><code>hub</code></td><td>Mở SecHub — 9 chuyên mục giáo trình này — phục vụ tĩnh tại 127.0.0.1:4000 (chỉ truy cập được từ máy bạn).</td><td><code>npm run hub</code> rồi mở <code>http://127.0.0.1:4000</code></td></tr>
+  <tr><td><code>doctor</code></td><td>Kiểm tra môi trường: phiên bản Node (cần ≥ 22.5), <code>node:sqlite</code> có sẵn hay không, port 3000/3001 đang rảnh hay bị chiếm.</td><td><code>npm run doctor</code></td></tr>
+  <tr><td><code>labs</code></td><td>Liệt kê các bài thực hành trong <code>exercises/</code> kèm tiêu đề từng bài.</td><td><code>node src/cli.js labs</code></td></tr>
+  <tr><td><code>npm test</code></td><td>Chạy toàn bộ unit test (<code>node --test tests/</code>) — gate bắt buộc xanh trước khi kết luận bất kỳ thay đổi nào.</td><td><code>npm test</code></td></tr>
+  <tr><td><code>npm run e2e</code></td><td>E2E tầng HTTP: tự dựng lab vuln + hardened + hub trên port tạm và kiểm chứng đối chứng — lỗ hổng phải <em>tồn tại</em> ở vuln và <em>bị chặn</em> ở hardened.</td><td><code>npm run e2e</code></td></tr>
+</table>
+
+<div class="card warn">
+  <h4>⚠️ Cảnh báo pháp lý</h4>
+  <p>Tất cả lệnh trong bảng này chỉ hợp pháp khi chạy trên <strong>lab 127.0.0.1 của chính bạn</strong> hoặc hệ thống được cho phép bằng văn bản. Quét, tạo tải hay dò lỗ hổng nhắm hệ thống của người khác là phạm tội theo <strong>Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017)</strong> — khung tù cao nhất 7–12 năm — cùng Điều 288, 291 và Luật An ninh mạng 2018 (chuyên mục 07). <code>guard.js</code> chặn mục tiêu public ở mọi lệnh tạo tải — tìm cách né guard là phạm pháp, không phải "bypass kỹ thuật". Lệnh <code>crawl</code> trên web công khai chỉ hợp lệ ở mức <em>đọc lịch sự</em>: tôn trọng robots.txt, không vượt đăng nhập, không lấy dữ liệu cá nhân quy mô lớn (Nghị định 13/2023/NĐ-CP). Ranh giới đầy đủ: <code>docs/06-polite-scraping.md</code>, <code>docs/04-cheat-sheet.md</code>.</p>
+</div>
+
+<div class="card ok">
+  <h4>Điểm cần nhớ</h4>
+  <ul>
+    <li><code>serve</code> và <code>serve:hardened</code> đều mặc định port 3000 — chạy song song hai bản thì bản hardened phải <code>-- --port 3001</code>, rồi quét cả <code>:3000</code> và <code>:3001</code> để đối chứng.</li>
+    <li>Mọi lệnh chủ động qua <code>guard.js</code>: loopback tự do, dải RFC1918 cần <code>--i-own-this-target</code>, public chặn cứng; <code>crawl</code> là ngoại lệ ngược chiều và có cơ sở pháp lý riêng.</li>
+    <li>Báo cáo <code>scan</code> và <code>crawl</code> tự ghi vào <code>reports/</code> (đường dẫn hằng số trong mã — lệnh không nhận đường dẫn từ CLI, mitigation path-traversal).</li>
+    <li>Đọc kết quả đo bằng <strong>p95</strong> và mã <strong>429</strong> — bản hardened "chịu tải" bằng cách từ chối có kiểm soát, không phải bằng cách không bao giờ từ chối.</li>
+    <li>Trước khi kết luận bất kỳ điều gì: <code>npm test</code> và <code>npm run e2e</code> phải xanh — đó là hai gate của chính bộ công cụ này.</li>
+  </ul>
+</div>
+</section>
+  </main>
+</div>
+
+<footer>
+  <div><strong>SecHub</strong> — một phần của bộ công cụ SecLab (Node.js ≥22.5, không dependency ngoài) · MIT License</div>
+  <div class="law">⛔ Tấn công hệ thống không thuộc sở hữu là BẤT HỢP PHÁP — Điều 287 BLHS 2015 · Luật An ninh mạng 2018</div>
+</footer>
+
+<script>
+  // Sinh mục lục chỉ khi mục lục tĩnh chưa có (shell mở riêng) — tránh nhân đôi
+  // khi index.html đã được assemble-hub.js ghép sẵn mục lục tĩnh.
+  (function () {
+    var nav = document.querySelector('nav.toc');
+    var topics = document.querySelectorAll('section.topic');
+    if (!nav || !topics.length) return;
+    if (nav.querySelector('a')) return; // mục lục tĩnh đã có — không chèn thêm
+    var html = '';
+    topics.forEach(function (s) {
+      var id = s.id || '';
+      var h2 = s.querySelector('h2');
+      if (!id || !h2) return;
+      var clean = h2.textContent.replace(/^\s*\d+\s*·\s*/, '').trim();
+      html += '<a href="#' + id + '">' + clean + '</a>';
+    });
+    var marker = nav.querySelector('.toc-title');
+    marker.insertAdjacentHTML('afterend', html);
+  })();
+</script>
+</body>
+</html>

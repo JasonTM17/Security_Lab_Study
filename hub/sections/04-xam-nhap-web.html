@@ -1,0 +1,77 @@
+<section class="topic" id="chuong-04">
+<h2><span class="num">04</span> · Xâm nhập Web — OWASP Top 10 qua lăng kính lab SecLab</h2>
+
+<p>Khác với tấn công Phủ nhận Dịch vụ (chuyên mục 02) nhắm vào <em>độ sẵn sàng</em>, tấn công ứng dụng web nhắm vào <em>dữ liệu và quyền kiểm soát</em>. Danh sách <strong>OWASP Top 10</strong> (Open Worldwide Application Security Project) tổng hợp mười nhóm rủi ro web phổ biến nhất. Chuyên mục này giải thích cơ chế từng nhóm, cách phòng và đối chiếu với 8 lỗ hổng được cài cố ý trong lab SecLab — <code>src/lab/app.js</code> với hai chế độ <code>vuln</code> (cố ý dễ tổn thương) và <code>hardened</code> (đã vá).</p>
+
+<div class="card danger">
+<h4>⚠️ Cảnh báo pháp lý</h4>
+<p>Toàn bộ nội dung chỉ phục vụ <strong>hiểu và phòng thủ</strong>, thực hành duy nhất trên lab tại <code>127.0.0.1</code>. Quét, dò, can thiệp hệ thống của người khác là phạm tội theo <strong>Điều 287 Bộ luật Hình sự 2015</strong> — mọi lệnh SecLab vì vậy đều kiểm duyệt mục tiêu qua <code>src/guard.js</code> và chặn cứng địa chỉ public.</p>
+</div>
+
+<h3>Cơ chế các nhóm lỗ hổng trọng tâm</h3>
+
+<ul>
+<li><span class="badge offense">SQL Injection</span> — đầu vào được nối chuỗi thẳng vào câu truy vấn, khiến dữ liệu bị CSDL hiểu nhầm là <em>lệnh</em>. Dạng <em>boolean-based</em> chèn điều kiện luôn đúng để trả về toàn bộ bảng; dạng <em>error-based</em> gây lỗi SQL để đọc thông báo lỗi, dò cấu trúc bảng.</li>
+<li><span class="badge offense">XSS</span> — Cross-Site Scripting: chèn JavaScript chạy trong trình duyệt nạn nhân. <em>Reflected</em>: input được in lại nguyên văn trong response (kể cả trang 404); <em>stored</em>: dữ liệu độc được lưu vào CSDL rồi hiện ra cho mọi người; <em>DOM-based</em>: script phía client tự chèn dữ liệu không an toàn vào DOM.</li>
+<li><span class="badge offense">IDOR</span> — Insecure Direct Object Reference, thuộc <strong>A01 Broken Access Control</strong>: tham số định danh (<code>/api/users/2</code>) được tin mà không kiểm tra người gọi có quyền — đổi số ID là đọc được dữ liệu người khác.</li>
+<li><span class="badge offense">SSRF</span> — Server-Side Request Forgery: lừa server chủ động truy cập URL do kẻ tấn công chỉ định để đọc dữ liệu nội bộ. SecLab tự chống SSRF bằng cách kiểm duyệt mục tiêu <em>hai lần</em> — tại entry (<code>src/cli.js:206</code>) và trong module quét (<code>src/modules/vulnscan.js:4</code>).</li>
+<li><span class="badge offense">Path Traversal</span> — dùng <code>../</code> "đi lên" khỏi thư mục gốc để đọc file bất kỳ trên máy chủ.</li>
+<li><span class="badge offense">Broken Authentication</span> — nhóm <strong>A07</strong>: vượt qua xác thực (nhờ SQLi ở câu đăng nhập), cookie phiên thiếu cờ bảo mật, thông báo lỗi xác thực quá chi tiết.</li>
+<li><span class="badge offense">Misconfiguration</span> — nhóm <strong>A05</strong>: stack trace lộ ra response, directory listing còn bật, thiếu bộ <strong>security headers</strong> (CSP — Content Security Policy: header ra lệnh cho trình duyệt chỉ được tải script/ảnh/style từ các nguồn được liệt kê, chặn nốt script độc chèn qua XSS; X-Frame-Options: cấm trang bị nhúng trong iframe của site khác).</li>
+</ul>
+
+<h3>Bản đồ sang 8 lỗ hổng của lab SecLab</h3>
+
+<table>
+<tr><th>Mã</th><th>Điểm tiếp xúc</th><th>Cơ chế lỗi (vuln)</th><th>Cách vá (hardened)</th></tr>
+<tr><td>LAB-01 · SQLi</td><td><code>/search?q=</code>, <code>POST /login</code></td><td>SQL nối chuỗi input (<code>src/db.js:46,68</code>)</td><td>Parameterized query + escape wildcard (<code>src/db.js:58,79</code>)</td></tr>
+<tr><td>LAB-02 · XSS</td><td><code>/search</code>, trang 404</td><td>Phản chiếu input nguyên văn (<code>src/lab/app.js:259,339</code>)</td><td>Encode HTML bằng <code>esc()</code> (<code>src/lab/app.js:27</code>) + CSP</td></tr>
+<tr><td>LAB-03 · IDOR</td><td><code>/api/users/:id</code></td><td>Trả email, apiKey cho mọi ID</td><td>401 khi chưa đăng nhập, 403 nếu không phải chủ tài khoản (<code>src/lab/app.js:274-278</code>)</td></tr>
+<tr><td>LAB-04 · Path traversal</td><td><code>/download?name=</code></td><td>Chấp nhận <code>../</code> (VFS ảo, an toàn)</td><td>Từ chối <code>..</code>, bắt buộc tiền tố <code>files/</code> (<code>src/lab/app.js:293</code>)</td></tr>
+<tr><td>LAB-05 · Headers/cookie</td><td>Mọi response, <code>Set-Cookie</code></td><td>Thiếu headers; cookie không cờ bảo mật</td><td><code>securityHeaders()</code> + <code>HttpOnly/SameSite</code> (<code>src/lab/app.js:123,237-238</code>)</td></tr>
+<tr><td>LAB-06 · Rate limit</td><td>Toàn trang</td><td>Không giới hạn tần suất</td><td>Token bucket middleware (<code>src/lab/app.js:113,124</code>)</td></tr>
+<tr><td>LAB-07 · ủy quyền</td><td><code>/admin</code></td><td>Không kiểm tra gì cả</td><td>Kiểm tra <code>role === 'admin'</code> trên server (<code>src/lab/app.js:310-312</code>)</td></tr>
+<tr><td>LAB-08 · Verbose error</td><td>Mọi exception</td><td>Lộ stack trace</td><td>Log nội bộ, trang lỗi chung chung (<code>src/lab/app.js:132-141</code>)</td></tr>
+</table>
+
+<h3>Bốn trụ cột phòng thủ</h3>
+
+<div class="grid2">
+<div class="card ok">
+<h4><span class="badge defense">1</span> Parameterized query</h4>
+<p>SQL giữ chỗ <code>?</code>, giá trị truyền <em>riêng biệt</em> — CSDL không bao giờ trộn lẫn lệnh và dữ liệu. Trong lab: <code>searchUsersSafe()</code>, <code>loginSafe()</code> (<code>src/db.js:55,77</code>). Nguyên tắc vàng: <strong>không nối chuỗi input vào SQL</strong>.</p>
+</div>
+<div class="card ok">
+<h4><span class="badge defense">2</span> Output encoding</h4>
+<p>Trước khi in dữ liệu động ra HTML, mã hoá ký tự đặc biệt (<code>&lt; &gt; &amp; " '</code>) theo đúng ngữ cảnh — hàm <code>esc()</code> (<code>src/lab/app.js:27</code>). Khi đó script chèn vào chỉ hiện như văn bản; kết hợp CSP để chặn nốt nguồn script ngoài.</p>
+</div>
+<div class="card ok">
+<h4><span class="badge defense">3</span> Kiểm tra quyền trên server</h4>
+<p>Mọi endpoint tự hỏi "đối tượng này thuộc về ai?" dựa trên <em>phiên đăng nhập phía server</em>, không tin tham số URL. Bản hardened trả 401/403 (<code>src/lab/app.js:274-278</code>); thông báo sai mật khẩu viết chung chung để không dò ra tài khoản hợp lệ.</p>
+</div>
+<div class="card ok">
+<h4><span class="badge defense">4</span> Allowlist</h4>
+<p>Chỉ chấp nhận giá trị trong <strong>danh sách trắng</strong>: đường dẫn tải file phải bắt đầu bằng <code>files/</code> và không chứa <code>..</code>; mục tiêu quét phải thuộc phạm vi ủy quyền (loopback tự do, dải riêng cần <code>--i-own-this-target</code>, public chặn). Từ chối mặc định phần còn lại — hiệu quả với cả SSRF lẫn path traversal.</p>
+</div>
+</div>
+
+<h3>Quan sát bằng lệnh scan</h3>
+
+<pre class="cmd">npm run serve                                  <span class="cmt"># lab vuln :3000</span>
+node src/cli.js scan http://127.0.0.1:3000     <span class="cmt"># quét SQLi, XSS, IDOR, headers…</span>
+npm run serve:hardened -- --port 3001          <span class="cmt"># bản đã vá — bắt buộc port khác để chạy song song</span>
+node src/cli.js scan http://127.0.0.1:3001     <span class="cmt"># so sánh trước/sau vá</span></pre>
+
+<p><span class="badge lab">lab</span> Scanner <code>src/modules/vulnscan.js</code> chỉ gửi probe kiểm chứng: so số dòng kết quả giữa hai giá trị tìm kiếm để phát hiện SQLi boolean-based (<code>src/modules/vulnscan.js:9</code>), kiểm tra security headers còn thiếu (<code>src/modules/vulnscan.js:73</code>). Mỗi finding kèm mức độ, bằng chứng, cách vá; báo cáo .md/.html ghi vào <code>reports/</code> (<code>src/cli.js:227</code>). Bản vuln cho thấy finding High (SQLI-001/002, XSS-001/002) và Medium (headers, cookie); cùng lệnh trên bản hardened hầu hết chuyển sang "Đạt" — vì vá nằm ở lớp server-side, đúng chỗ dữ liệu và lệnh trộn lẫn. Làm sâu hơn theo <code>exercises/03-quet-lo-hong.md</code>, <code>exercises/04-tan-cong-lab.md</code> và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+
+<div class="card ok">
+<h4>Điểm cần nhớ</h4>
+<ul>
+<li>SQL Injection, XSS, IDOR, SSRF, Path Traversal chung một gốc: <strong>dữ liệu người dùng bị coi là lệnh hoặc tin tưởng quá mức</strong> — vá ở điểm trộn dữ liệu/lệnh, đừng chỉ lọc payload.</li>
+<li>Bốn trụ cột phòng thủ web: parameterized query, output encoding, kiểm tra quyền trên server theo phiên, allowlist.</li>
+<li>Lab chứa 8 lỗ hổng LAB-01→LAB-08 trong <code>src/lab/app.js</code>; <code>node src/cli.js scan</code> trên cả hai chế độ cho thấy khác biệt trước/sau vá.</li>
+<li>Security headers, cờ cookie, rate limit chỉ là lớp bổ sung, không thay thế bốn trụ cột.</li>
+<li>Thực hành chỉ trên 127.0.0.1; quét hay khai thác hệ thống người khác vi phạm Điều 287 BLHS 2015.</li>
+</ul>
+</div>
+</section>

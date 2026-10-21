@@ -1,0 +1,79 @@
+<section class="topic" id="chuong-02">
+  <h2>02 · DDoS &amp; DoS — Từ cơ chế đến phòng thủ</h2>
+
+  <p>Mọi máy chủ chỉ có tài nguyên hữu hạn: băng thông, bảng kết nối TCP, CPU, bộ nhớ và số luồng xử lý request. <strong>DoS</strong> (Denial of Service — tấn công từ chối dịch vụ) là cố tình làm cạn một tài nguyên đó để dịch vụ không còn phục vụ được người dùng hợp lệ. <strong>DDoS</strong> (Distributed DoS — DoS phân tán) là DoS khi nguồn phát tải đến từ hàng nghìn máy cùng lúc.</p>
+
+  <h3>DoS và DDoS khác nhau ở đâu?</h3>
+  <p>DoS đơn nguồn dễ bị chặn: firewall cấm đúng một địa chỉ IP là xong. Khi tải đến từ một <strong>botnet</strong> — mạng hàng nghìn máy tính, máy chủ hay thiết bị IoT bị cài mã độc từ xa — cách đó vô nghĩa: IP nguồn bị giả mạo (IP spoofing), nguồn thật phân bố khắp thế giới, băng thông nhân theo số bot, còn bộ lọc của nạn nhân phải phân biệt "tải xấu" giữa "tải tốt" trông y hệt.</p>
+
+  <h3>Ba nhóm kỹ thuật DoS</h3>
+  <p>Các nhãn <em>lớp 3/4</em> và <em>lớp 7</em> dưới đây là tầng của mô hình mạng (OSI) mà tấn công nhắm tới: <strong>lớp 3</strong> — IP (định tuyến gói tin theo địa chỉ), <strong>lớp 4</strong> — TCP/UDP (dựng và giữ kết nối), <strong>lớp 7</strong> — ứng dụng (HTTP của web). Tầng càng cao, gói tin càng "hợp lệ" với mạng nên càng phải do máy chủ tự xử lý — tức càng tốn tài nguyên để phục vụ. Nền tảng tầng mạng này được giải kỹ ở chuyên mục 06.</p>
+  <div class="grid3">
+    <div class="card">
+      <h4>Volumetric <span class="badge offense">lớp 3/4</span></h4>
+      <p>Nhắm thẳng vào <strong>băng thông</strong>. <em>UDP flood</em> bắn gói đến cổng ngẫu nhiên, buộc server trả gói "port unreachable". <em>DNS amplification</em> lợi dụng máy chủ DNS công khai: gửi truy vấn nhỏ với IP nguồn giả, nhận phản hồi lớn gấp nhiều lần — 1 byte từ bot tạo ra 50–70 byte dội về nạn nhân.</p>
+    </div>
+    <div class="card">
+      <h4>Protocol <span class="badge offense">lớp 3/4</span></h4>
+      <p>Nhắm vào <strong>protocol state</strong>. <em>SYN flood</em> gửi SYN mà không hoàn tất bắt tay, để kết nối "nửa mở" (half-open) dồn đầy bảng của server. <em>Ping of Death</em> là dạng lịch sử: gói ICMP quá khổ làm lỗi stack mạng cũ, ngày nay đã vá gần hết.</p>
+    </div>
+    <div class="card">
+      <h4>Application-layer <span class="badge offense">lớp 7</span></h4>
+      <p>Nhắm vào <strong>chi phí xử lý ứng dụng</strong>, dùng băng thông rất ít. <em>HTTP flood</em> lặp lại request vào endpoint đắt tiền (tìm kiếm, báo cáo). <em>Slowloris</em> mở nhiều kết nối TCP nhưng chỉ gửi một nửa HTTP header, khiến server "lễ phép" chờ header còn lại — nguyên lý ở <code>src/modules/slowloris.js:1-9</code>.</p>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Nhóm</th><th>Tài nguyên bị cạn</th><th>Ví dụ</th><th>Dấu hiệu nhận biết</th></tr>
+    <tr><td>Volumetric</td><td>Băng thông đường truyền</td><td>UDP flood, DNS amplification</td><td>Gbit/s khổng lồ, gói rác không hợp lệ</td></tr>
+    <tr><td>Protocol</td><td>Bảng kết nối / state</td><td>SYN flood, Ping of Death</td><td>Nhiều kết nối nửa mở, handshake treo</td></tr>
+    <tr><td>Application</td><td>CPU, worker, luồng xử lý</td><td>HTTP flood, slowloris</td><td>Latency tăng, 5xx, băng thông bình thường</td></tr>
+  </table>
+
+  <h3>Phòng thủ — một bức tường nhiều lớp</h3>
+  <p>Không có công nghệ duy nhất nào chặn được cả ba nhóm — phòng thủ là xếp chồng các hàng rào, mỗi hàng rào gắn một loại tài nguyên:</p>
+  <div class="grid2">
+    <div class="card">
+      <h4>Rate limiting (token bucket) <span class="badge defense">hàng rào lớp 7</span></h4>
+      <p>Mỗi client (thường theo IP) có một "xô" tối đa <em>capacity</em> token, được nạp lại với tốc độ <em>refillPerSec</em>. Hết token → trả <strong>429</strong> (mã HTTP "Too Many Requests" — <em>quá nhiều yêu cầu</em>; giải kỹ ở chuyên mục 06, đây cũng là mã bản hardened lab trả khi limiter chặn tải) kèm header <code>Retry-After</code> (số <em>giây</em> client nên chờ trước khi thử lại — server tự nói "đợi bao lâu thì quay lại"). Đây là kỹ thuật Cloudflare và nginx <code>limit_req</code> dùng; bản cài đặt tham khảo ở <code>src/defense/ratelimiter.js:7</code> (hàm <code>tokenBucketLimiter</code>).</p>
+    </div>
+    <div class="card">
+      <h4>SYN cookies &amp; giới hạn kết nối nửa mở <span class="badge defense">hàng rào protocol</span></h4>
+      <p>SYN cookies không giữ state cho từng SYN — thông tin bắt tay được mã hoá ngay trong số thứ tự trả về, nên bảng kết nối không thể bị dồn đầy. Ở tầng ứng dụng, bản hardened lab giới hạn kết nối nửa mở theo IP (<code>src/lab/app.js:149</code>, <code>HALF_OPEN_LIMIT = 10</code>): vượt ngưỡng là bị cắt ngay, client thật vẫn vào bình thường.</p>
+    </div>
+    <div class="card">
+      <h4>Timeout chặt <span class="badge defense">hàng rào chờ</span></h4>
+      <p>Slowloris chỉ sống được khi server chờ vô thời hạn. Bản hardened đặt <code>headersTimeout = 4s</code>, <code>requestTimeout = 10s</code> và ngắt socket idle quá 8s (<code>src/lab/app.js:362-365</code>) — kết nối "nửa request" bị đóng sớm, worker được giải phóng.</p>
+    </div>
+    <div class="card">
+      <h4>CDN &amp; anycast <span class="badge defense">hàng rào mạng</span></h4>
+      <p>Mạng CDN phân bố ở hàng trăm điểm (anycast — cùng một IP được quảng bá từ nhiều nơi, tải tự chia về trung tâm gần nhất), nên cơn bão volumetric bị hấp thụ và lọc (scrubbing) ở rìa trước khi chạm tới nguồn gốc — cách các dịch vụ lớn sống sót qua DDoS hàng Tbps.</p>
+    </div>
+  </div>
+
+  <h3>Thử nghiệm trong lab SecLab <span class="badge lab">chỉ 127.0.0.1</span></h3>
+  <p>Lab cho phép <strong>đo bằng số</strong> cả hai phía trên server bạn sở hữu. Module <code>loadtest</code> bắn một endpoint, <code>flowtest</code> mô phỏng luồng người dùng thật với think-time và ramp-up (<code>src/modules/flowload.js:1-5</code>), còn <code>slowloris</code> giữ kết nối nửa request — cả ba đều đi qua <code>guard.js</code> chặn cứng mục tiêu công khai. Chi tiết: <code>exercises/05-mo-phong-tai-va-slowloris.md</code>, <code>docs/03-dos-ddos-hieu-dung-va-phong-thu.md</code>:</p>
+  <pre class="cmd">npm run serve                          <span class="cmt"># bản vuln ở 127.0.0.1:3000 (terminal 1)</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 40 --duration 8
+npm run serve:hardened -- --port 3001  <span class="cmt"># bản đã vá ở 127.0.0.1:3001 — PHẢI chỉ định port khác (terminal 2), mặc định cũng là 3000</span>
+node src/cli.js loadtest http://127.0.0.1:3001 --path=/slow --rps 40 --duration 8
+node src/cli.js slowloris http://127.0.0.1:3000 --sockets 100 --duration 20
+node src/cli.js slowloris http://127.0.0.1:3001 --sockets 100 --duration 20</pre>
+  <p>Quan sát: bản vuln có p95 (phân vị thứ 95 — ngưỡng mà 95% request nhanh hơn; bao quát cả những request chậm nhất người dùng gặp, nhạy hơn giá trị trung bình) ~ 3000 ms và thông lượng sụp vì <code>/slow</code> chiếm worker 3 giây; bản hardened nhận rừng 429 nhưng server không sập — tinh thần anti-DoS: <em>không cần "chịu được tải", chỉ cần "không chết vì tải"</em>. Bản hardened còn cắt sớm ~90/100 kết nối slowloris nhờ giới hạn nửa mở và timeout.</p>
+
+  <div class="card danger">
+    <h4>Cảnh báo pháp lý — không thể bỏ qua</h4>
+    <p>Tạo tải hay làm gián đoạn dịch vụ nhắm vào hệ thống <strong>không thuộc sở hữu hoặc không có ủy quyền bằng văn bản</strong> là vi phạm <strong>Điều 287 Bộ luật Hình sự 2015</strong> (Tội cản trở hoặc gây rối loạn hoạt động của mạng máy tính, mạng viễn thông, phương tiện xử lý thông tin điện tử), khung tù cao nhất 7–12 năm khi gây thiệt hại nghiêm trọng. Toàn bộ lab bị <code>src/guard.js</code> khóa chặt vào 127.0.0.1 và mạng riêng — tìm cách né guard là phạm pháp, không phải "bypass kỹ thuật".</p>
+  </div>
+
+  <div class="card ok">
+    <h4>Điểm cần nhớ</h4>
+    <ul>
+      <li>DoS cạn tài nguyên từ một nguồn; DDoS phân tán qua botnet, nhân băng thông lên và khiến việc cấm IP đơn lẻ vô nghĩa.</li>
+      <li>Ba nhóm kỹ thuật nhắm ba loại tài nguyên: volumetric (băng thông), protocol (bảng kết nối), application-layer (chi phí xử lý) — nên phòng thủ phải nhiều lớp.</li>
+      <li>Token-bucket rate limiting, SYN cookies, giới hạn kết nối nửa mở và timeout chặt là bốn hàng rào có thể tự cài và đo ngay trong lab (<code>src/defense/ratelimiter.js</code>, <code>src/lab/app.js</code>).</li>
+      <li>HTTP flood và slowloris tiêu tốn băng thông gần bằng 0 nhưng vẫn tê liệt server — đừng đánh giá nguy hiểm qua "lượng traffic".</li>
+      <li>Chỉ thử nghiệm trên hệ thống bạn sở hữu; nhắm mục tiêu bên ngoài là hành vi bị Điều 287 BLHS 2015 trừng phạt.</li>
+    </ul>
+  </div>
+</section>

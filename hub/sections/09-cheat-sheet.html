@@ -1,0 +1,51 @@
+<section class="topic" id="chuong-09">
+<h2><span class="num">09</span> · Cheat sheet lệnh &amp; quy trình làm việc</h2>
+
+<p>Trang tra nhanh của toàn bộ giáo trình: mọi lệnh của SecLab gom vào một bảng, mỗi lệnh kèm một ví dụ chạy được ngay. Quy tắc chung trước khi gõ: <strong>mọi lệnh "chủ động" (recon, scan, loadtest, flowtest, slowloris) đều qua người gác cổng <code>src/guard.js</code></strong> — loopback (<code>127.0.0.1</code>) tự do, dải IP riêng cần cờ <code>--i-own-this-target</code>, mục tiêu public bị chặn cứng. <code>crawl</code> là lệnh ngược chiều duy nhất: cho phép web công khai (cào lịch sự) nhưng chặn loopback cho tới khi có cờ sở hữu. Cơ sở pháp lý của sự khác biệt này nằm ở chuyên mục 07.</p>
+
+<h3>Quy trình làm việc chuẩn — một vòng "tấn công → vá → đối chứng" <span class="badge lab">chỉ 127.0.0.1</span></h3>
+
+<pre class="cmd">node src/cli.js doctor                                  <span class="cmt"># 0) kiểm tra môi trường + port 3000/3001 còn rảnh</span>
+npm run serve                                           <span class="cmt"># 1) lab VULN tại 127.0.0.1:3000 (terminal 1)</span>
+node src/cli.js recon http://127.0.0.1:3000             <span class="cmt"># 2) thăm dò: headers, fingerprint, robots.txt</span>
+node src/cli.js scan http://127.0.0.1:3000              <span class="cmt"># 3) quét lỗ hổng → báo cáo ghi vào reports/</span>
+node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 50 --duration 8
+npm run serve:hardened -- --port 3001                   <span class="cmt"># 4) bản đã vá ở 3001 (terminal 2)</span>
+node src/cli.js scan http://127.0.0.1:3001              <span class="cmt"># 5) quét lại → đối chứng trước/sau vá</span>
+npm test &amp;&amp; npm run e2e                                 <span class="cmt"># 6) xác nhận toàn bộ kiểm thử còn xanh</span></pre>
+
+<h3>Bảng lệnh tra nhanh — mỗi lệnh một ví dụ dùng được</h3>
+
+<table>
+  <tr><th>Lệnh</th><th>Làm gì</th><th>Ví dụ</th></tr>
+  <tr><td><code>serve</code> <span class="badge offense">vuln</span></td><td>Khởi động lab web <strong>cố ý dễ tổn thương</strong>, bind 127.0.0.1, mặc định port 3000.</td><td><code>node src/cli.js serve --port 3000</code></td></tr>
+  <tr><td><code>serve:hardened</code> <span class="badge defense">đã vá</span></td><td>Cùng lab nhưng đã vá 8 lỗ hổng LAB-01→08. Mặc định cũng chạy port 3000 — <strong>phải chỉ định port khác</strong> nếu bản vuln đang chạy, nếu không sẽ gặp <code>EADDRINUSE</code>.</td><td><code>npm run serve:hardened -- --port 3001</code></td></tr>
+  <tr><td><code>recon</code></td><td>Thu thập thông tin mục tiêu: response headers, fingerprint công nghệ, quét cổng 80/443/3000…, robots.txt.</td><td><code>node src/cli.js recon http://127.0.0.1:3000</code></td></tr>
+  <tr><td><code>scan</code></td><td>Quét lỗ hổng lớp ứng dụng (SQLi, XSS, IDOR, security headers, rate limit…); báo cáo .md + .html ghi vào <code>reports/</code>.</td><td><code>node src/cli.js scan http://127.0.0.1:3000</code> — thêm <code>--json</code> để in kết quả JSON ra stdout</td></tr>
+  <tr><td><code>loadtest</code></td><td>Mô phỏng tải vào một endpoint; đo RPS thực tế và latency avg/p50/p90/p95/p99/max.</td><td><code>node src/cli.js loadtest http://127.0.0.1:3000 --path=/slow --rps 50 --duration 8</code></td></tr>
+  <tr><td><code>flowtest</code></td><td>Mô phỏng luồng người dùng thật (trang chủ → tìm kiếm → chi tiết) có think-time và ramp-up; đo latency từng bước để thấy bước nghẽn.</td><td><code>node src/cli.js flowtest http://127.0.0.1:3000 --users 5 --iterations 10 --think 150</code></td></tr>
+  <tr><td><code>slowloris</code></td><td>Mô phỏng tấn công giữ kết nối "nửa request"; so sánh thấy bản hardened cắt sớm nhờ timeout chặt.</td><td><code>node src/cli.js slowloris http://127.0.0.1:3000 --sockets 100 --duration 20</code></td></tr>
+  <tr><td><code>crawl</code> <span class="badge offense">ngược chiều</span></td><td>Cào web <strong>lịch sự</strong>: tôn trọng robots.txt, delay ≥ 300ms giữa hai request, tối đa 200 trang/sâu 5, chỉ cùng-origin, trích title/heading/link vào <code>reports/</code>. Cho phép site public; muốn cào lab cục bộ để tập thì thêm cờ sở hữu.</td><td><code>node src/cli.js crawl --url=https://site-cong-khai.example --delay-ms 800</code> · tập trên lab: <code>node src/cli.js crawl --url=http://127.0.0.1:3000 --i-own-this-target</code></td></tr>
+  <tr><td><code>hub</code></td><td>Mở SecHub — 9 chuyên mục giáo trình này — phục vụ tĩnh tại 127.0.0.1:4000 (chỉ truy cập được từ máy bạn).</td><td><code>npm run hub</code> rồi mở <code>http://127.0.0.1:4000</code></td></tr>
+  <tr><td><code>doctor</code></td><td>Kiểm tra môi trường: phiên bản Node (cần ≥ 22.5), <code>node:sqlite</code> có sẵn hay không, port 3000/3001 đang rảnh hay bị chiếm.</td><td><code>npm run doctor</code></td></tr>
+  <tr><td><code>labs</code></td><td>Liệt kê các bài thực hành trong <code>exercises/</code> kèm tiêu đề từng bài.</td><td><code>node src/cli.js labs</code></td></tr>
+  <tr><td><code>npm test</code></td><td>Chạy toàn bộ unit test (<code>node --test tests/</code>) — gate bắt buộc xanh trước khi kết luận bất kỳ thay đổi nào.</td><td><code>npm test</code></td></tr>
+  <tr><td><code>npm run e2e</code></td><td>E2E tầng HTTP: tự dựng lab vuln + hardened + hub trên port tạm và kiểm chứng đối chứng — lỗ hổng phải <em>tồn tại</em> ở vuln và <em>bị chặn</em> ở hardened.</td><td><code>npm run e2e</code></td></tr>
+</table>
+
+<div class="card warn">
+  <h4>⚠️ Cảnh báo pháp lý</h4>
+  <p>Tất cả lệnh trong bảng này chỉ hợp pháp khi chạy trên <strong>lab 127.0.0.1 của chính bạn</strong> hoặc hệ thống được cho phép bằng văn bản. Quét, tạo tải hay dò lỗ hổng nhắm hệ thống của người khác là phạm tội theo <strong>Điều 287 Bộ luật Hình sự 2015 (sửa đổi 2017)</strong> — khung tù cao nhất 7–12 năm — cùng Điều 288, 291 và Luật An ninh mạng 2018 (chuyên mục 07). <code>guard.js</code> chặn mục tiêu public ở mọi lệnh tạo tải — tìm cách né guard là phạm pháp, không phải "bypass kỹ thuật". Lệnh <code>crawl</code> trên web công khai chỉ hợp lệ ở mức <em>đọc lịch sự</em>: tôn trọng robots.txt, không vượt đăng nhập, không lấy dữ liệu cá nhân quy mô lớn (Nghị định 13/2023/NĐ-CP). Ranh giới đầy đủ: <code>docs/06-polite-scraping.md</code>, <code>docs/04-cheat-sheet.md</code>.</p>
+</div>
+
+<div class="card ok">
+  <h4>Điểm cần nhớ</h4>
+  <ul>
+    <li><code>serve</code> và <code>serve:hardened</code> đều mặc định port 3000 — chạy song song hai bản thì bản hardened phải <code>-- --port 3001</code>, rồi quét cả <code>:3000</code> và <code>:3001</code> để đối chứng.</li>
+    <li>Mọi lệnh chủ động qua <code>guard.js</code>: loopback tự do, dải RFC1918 cần <code>--i-own-this-target</code>, public chặn cứng; <code>crawl</code> là ngoại lệ ngược chiều và có cơ sở pháp lý riêng.</li>
+    <li>Báo cáo <code>scan</code> và <code>crawl</code> tự ghi vào <code>reports/</code> (đường dẫn hằng số trong mã — lệnh không nhận đường dẫn từ CLI, mitigation path-traversal).</li>
+    <li>Đọc kết quả đo bằng <strong>p95</strong> và mã <strong>429</strong> — bản hardened "chịu tải" bằng cách từ chối có kiểm soát, không phải bằng cách không bao giờ từ chối.</li>
+    <li>Trước khi kết luận bất kỳ điều gì: <code>npm test</code> và <code>npm run e2e</code> phải xanh — đó là hai gate của chính bộ công cụ này.</li>
+  </ul>
+</div>
+</section>
