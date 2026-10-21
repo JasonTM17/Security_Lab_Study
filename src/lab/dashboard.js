@@ -444,6 +444,7 @@ kbd{background:#1e293b;border:1px solid #334155;border-bottom-width:2px;border-r
 .alink{font-size:.8rem;margin:.3rem 0 0}
 .alink a{color:var(--ac);font-weight:700;margin-right:.4rem}
 .bcard:target{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac),0 0 22px -6px var(--ac)}
+.bcard{cursor:pointer}
 .filters .ftoggle,.sub .ftoggle{margin-left:.3rem;padding:.2rem .6rem;font-size:.78rem;cursor:pointer}
 /* accessibility: tôn trọng prefers-reduced-motion */
 @media (prefers-reduced-motion:reduce){
@@ -731,6 +732,10 @@ async function alerts(){
   }catch(e){}
 }
 $('#pausebtn').onclick=()=>{paused=!paused;$('#pausebtn').textContent=paused?'▶ Tiếp tục':'⏸ Tạm dừng';$('#livedot').className='live'+(paused?' off':'');};
+// cả defense card bấm được → nhảy sang bài tương ứng ở Red Team
+$$('.bcard').forEach(c=>{c.setAttribute('role','link');c.tabIndex=0;c.title='Mở bài này ở Red Team dashboard';
+  c.onclick=e=>{if(e.target.closest('a'))return;const a=c.querySelector('.bid');if(a)location.href=a.getAttribute('href');};
+  c.onkeydown=e=>{if(e.key==='Enter'){const a=c.querySelector('.bid');if(a)location.href=a.getAttribute('href');}};});
 feed();alerts();setInterval(feed,2500);setInterval(alerts,5000);
 `;
 

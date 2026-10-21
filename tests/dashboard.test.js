@@ -65,6 +65,7 @@ test('blue dashboard: lọc nghi ngờ + chi tiết request + alert→defense li
   assert.ok(BLUE_JS.includes('onlySus'), 'thiếu state lọc nghi ngờ');
   assert.ok(BLUE_JS.includes('lastLog'), 'thiếu lastLog cho detail panel');
   assert.ok(BLUE_JS.includes('"sqli":["LAB-01"]'), 'L2R map phải được inject');
+  assert.ok(BLUE_JS.includes("setAttribute('role','link')"), 'cả bcard phải bấm được → sang Red');
 });
 
 test('dữ liệu LABS: 20 bài, id duy nhất, category hợp lệ', () => {
