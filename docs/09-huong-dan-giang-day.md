@@ -23,7 +23,7 @@ kiến thức bằng số liệu — không chỉ nghe lý thuyết.
 ```bash
 node --version          # cần >= 22.5 (có node:sqlite); thấp hơn vẫn chạy — lab rơi về fallback in-memory
 npm run doctor          # kiểm tra Node, sqlite, port 3000/3001 còn rảnh
-npm test                # 145/145
+npm test                # 147/147
 npm run e2e             # 64/64
 ```
 

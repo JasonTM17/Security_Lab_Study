@@ -23,13 +23,13 @@ npm test
 1. Đọc 3 dòng tổng kết ở cuối (dạng TAP, tiền tố `ℹ`):
 
    ```
-   ℹ tests 145
-   ℹ pass 145
+   ℹ tests 147
+   ℹ pass 147
    ℹ fail 0
    ```
 
    Kỳ vọng: **fail 0**. Con số `tests` có thể tăng khi project thêm test mới
-   (tại thời điểm cập nhật tài liệu là 145) — điều bắt buộc là `fail 0`.
+   (tại thời điểm cập nhật tài liệu là 147) — điều bắt buộc là `fail 0`.
 2. Chạy đúng MỘT file để xem runner cô lập thế nào:
 
    ```bash
@@ -103,7 +103,7 @@ và nêu được 1 cặp check B/C đối chứng bằng đúng tên.
    `node src/cli.js recon` thì cần?
 2. Nếu `npm test` báo `fail 5` ngay sau khi bạn `git pull` — bạn kết luận gì
    trước tiên: tool hỏng, lab hỏng, hay có thay đổi code chưa chạy kèm test?
-3. Con số 145 test và 64 check E2E đo hai tầng khác nhau ở điểm nào (đơn vị đo,
+3. Con số 147 test và 64 check E2E đo hai tầng khác nhau ở điểm nào (đơn vị đo,
    thứ cần dựng, thời gian chạy)?
 4. Bạn vừa thêm 1 route mới vào lab hardened. Phải thêm check nhóm nào vào
    `tests/e2e.mjs` để route đó được bảo vệ bởi đối chứng vuln/hardened?

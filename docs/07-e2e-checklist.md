@@ -57,7 +57,7 @@ Ghi chú kỹ thuật: check A7 phải dùng **raw HTTP request** (`node:http`, 
 ## Cách chạy lại
 
 ```bash
-npm test        # 145 unit/integration
+npm test        # 147 unit/integration
 npm run e2e     # 64 E2E HTTP (tự khởi động server, port tạm)
 node src/cli.js hub --port 4000   # rồi mở http://127.0.0.1:4000 xem hub
 node src/cli.js serve --hardened --port 3001  # lab để test tay trên trình duyệt

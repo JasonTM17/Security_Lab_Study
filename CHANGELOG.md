@@ -24,18 +24,30 @@ theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ### Sửa
 
+- **CSP hardened chặn dashboard** — `script-src/style-src 'self'` cấm inline
+  `<script>`/`<style>`/`style=` → dashboard hardened mất hết style và JS.
+  Tách CSS/JS thành route `/_lab/dash.css` + `/_lab/dash-{red,blue}.js`
+  (same-origin, CSP cho phép) và chuyển mọi màu nhóm sang class `c-<nhóm>`
+  + biến `--cat`. Dashboard giờ hoạt động đầy đủ trên CẢ hardened — đúng
+  bài học CSP: trang tuân thủ CSP dùng asset ngoài.
+- `flagsOf` (blue feed) không bắt payload URL-encoded (`%27%20UNION%20`,
+  `%3Cscript%3E`, `%26`) vì regex `\s` không khớp `%20` — giờ decode path
+  trước khi match; xoá `SUS` dead code.
 - Blue feed: timestamp `Date.now()` (numeric epoch) làm client crash vì gọi
   `.slice` trên số — formatter mới xử lý cả epoch số lẫn chuỗi ISO.
+- Nút copy payload: thêm fallback `execCommand` khi Clipboard API bị chặn.
+- Favicon inline cho `/lab` + `/blue` (diệt 404 console).
 - `/lab` redesign sang theme Red Team (đỏ/cam, nhóm theo màu kỹ năng) tách
   biệt với Blue Team (cyan); giữ nguyên lọc, tiến độ, CTF panel.
 
 ### Test
 
-- `tests/dashboard.test.js` +5: route `/blue`, `/_lab/alerts` bắt SQLi +
-  admin-probe từ traffic thật, status recording, timestamp helper, coverage
-  `LAB_DETECT` → **145 test** (trước 140).
-- `tests/e2e.mjs` +3 check nhóm I: `/blue` render, `/_lab/alerts` phát hiện
-  từ traffic e2e, status trong log → **64 check** (trước 61).
+- `tests/dashboard.test.js` +7: route `/blue`, `/_lab/alerts` bắt SQLi +
+  admin-probe từ traffic thật, status recording, timestamp helper,
+  `flagsOf` encoded-payload (extract+exec thật), MIME asset `/_lab/dash.*`,
+  coverage `LAB_DETECT` → **147 test** (trước 140).
+- `tests/e2e.mjs` +3 check nhóm I: `/blue` render + asset JS, `/_lab/alerts`
+  phát hiện từ traffic e2e, status trong log → **64 check** (trước 61).
 
 ## [1.4.0] — 2026-10
 
