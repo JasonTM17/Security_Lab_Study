@@ -30,6 +30,7 @@ function usage() {
 
   ${c.cyan('serve')}   [--port 3000] [--hardened]
         Khởi động lab web trên http://127.0.0.1:3000
+        → Dashboard chọn bài: http://127.0.0.1:3000/lab
         (mặc định: bản CỐ Ý DỄ TỔN THƯƠNG; --hardened: bản đã vá)
 
   ${c.cyan('recon')}   <target>
@@ -83,6 +84,7 @@ function usage() {
 
   ${c.cyan('doctor')}    Kiểm tra môi trường (Node, node:sqlite, port lab)
   ${c.cyan('labs')}      Danh sách bài thực hành trong exercises/
+        (dashboard tương tác chọn bài: mở /lab trên server lab đang chạy)
 
   ${c.bold('CỜ AN TOÀN')}
   ${c.yellow('--i-own-this-target')}   Bắt buộc khi nhắm dải IP riêng (10.x/172.16-31.x/192.168.x).
@@ -218,6 +220,7 @@ async function main() {
         const kind = mode === 'hardened' ? c.green('HARDENED (đã vá)') : c.red('VULN (cố ý dễ tổn thương)');
         console.log(`  Lab web [${kind}] đang chạy tại ${c.bold(`http://127.0.0.1:${port}`)}`);
         console.log(`  Bind: 127.0.0.1 — KHÔNG thể truy cập từ máy khác.`);
+        console.log(`  🧪 Dashboard chọn bài lab: ${c.bold(`http://127.0.0.1:${port}/lab`)}`);
         console.log(`  Mở trình duyệt hoặc: node src/cli.js scan http://127.0.0.1:${port}`);
         console.log(c.gray('  Nhấn Ctrl+C để dừng.\n'));
         server.on('error', (e) => console.error(c.red(`server error: ${e.message}`)));

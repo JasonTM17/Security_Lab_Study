@@ -115,14 +115,9 @@ const CHALLENGE_DEFS = [
 ];
 const TOTAL_POINTS = CHALLENGE_DEFS.reduce((s, c) => s + c.points, 0);
 
-export function esc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+export { esc } from './html.js';
+import { esc } from './html.js';
+import { renderDashboard } from './dashboard.js';
 
 function send(res, status, body, headers = {}) {
   res.statusCode = status;
@@ -235,7 +230,7 @@ code,pre{background:#1e293b;color:#e2e8f0}pre{padding:12px;overflow:auto}</style
 <body><span class="mode ${mode}">LAB ${mode.toUpperCase()}</span>
 <h1>${title}</h1>
 ${body}
-<hr><p><a href="/">Trang chủ</a> · <a href="/search?q=alice">/search</a> · <a href="/login">/login</a> · <a href="/api/users/2">/api/users/2</a> · <a href="/download?name=readme.txt">/download</a> · <a href="/slow">/slow</a> · <a href="/_lab/metrics">/_lab/metrics</a></p></body></html>`;
+<hr><p><a href="/">Trang chủ</a> · <a href="/lab"><b>🧪 Dashboard</b></a> · <a href="/search?q=alice">/search</a> · <a href="/login">/login</a> · <a href="/api/users/2">/api/users/2</a> · <a href="/download?name=readme.txt">/download</a> · <a href="/slow">/slow</a> · <a href="/_lab/metrics">/_lab/metrics</a></p></body></html>`;
 
 /**
  * Tạo HTTP server của lab.
@@ -372,6 +367,11 @@ export async function createLabApp(opts = {}) {
     const cookies = parseCookies(req);
     const session = cookies.session ? sessions.get(cookies.session) : undefined;
 
+    // ---------- /lab — Dashboard chọn bài lab ----------
+    if (path === '/lab' && req.method === 'GET') {
+      return html(res, 200, renderDashboard(hardened ? 'hardened' : 'vuln'));
+    }
+
     // ---------- trang chủ ----------
     if (path === '/' && req.method === 'GET') {
       const items = [
@@ -392,6 +392,7 @@ export async function createLabApp(opts = {}) {
         '<li><a href="/api/reset/request?user=alice">/api/reset/* — quên mật khẩu (reset token yếu)</a></li>',
         '<li><a href="/dom">/dom — trang hiển thị hash (DOM-based XSS)</a></li>',
         '<li><a href="/slow">/slow — endpoint chậm 3s (demo tải)</a></li>',
+        '<li><a href="/lab"><b>/lab — 🧪 Dashboard chọn bài lab (20 bài, lọc &amp; theo tiến độ)</b></a></li>',
         '<li><a href="/_lab/metrics">/_lab/metrics — bộ đếm request của lab</a></li>',
       ].join('\n');
       return html(
