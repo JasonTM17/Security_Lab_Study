@@ -1,4 +1,4 @@
-# Bài 09 — Chế độ CTF: giải trọn 7 thử thách của lab
+# Bài 09 — Chế độ CTF: giải trọn 10 thử thách của lab
 
 > Cờ sinh ngẫu nhiên **mỗi lần khởi động lab vuln**. Nhiệm vụ: khai thác 7 lớp lỗ hổng
 > bằng tay (trình duyệt hoặc curl), thu đủ 7 cờ `FLAG{...}` và nộp về server xác minh.
@@ -8,10 +8,10 @@
 
 ```bash
 node src/cli.js serve              # lab vuln + CTF ở 127.0.0.1:3000
-node src/cli.js challenge http://127.0.0.1:3000    # xem 7 thử thách + gợi ý
+node src/cli.js challenge http://127.0.0.1:3000    # xem 10 thử thách + gợi ý
 ```
 
-## 7 thử thách (170 điểm)
+## 10 thử thách (265 điểm)
 
 | # | Thử thách | Điểm | Kỹ năng |
 |---|---|---|---|
@@ -22,6 +22,9 @@ node src/cli.js challenge http://127.0.0.1:3000    # xem 7 thử thách + gợi 
 | 5 | Command Injection — đọc biến môi trường server | 25 | nối lệnh bằng `&`/`;` trong /tools/ping; cờ ở `SECLAB_CTF_CMD` |
 | 6 | JWT yếu — giả mạo token ctfsvc | 25 | alg=none hoặc crack secret `secret123` bằng `jwt crack`/`jwt forge` |
 | 7 | XXE — đọc flag-xxe.txt qua entity | 20 | `<!ENTITY x SYSTEM "file:///flag-xxe.txt">` trong POST /api/import |
+| 8 | Prototype Pollution — nhiễm Object.prototype | 30 | POST `{"__proto__":{"isAdmin":true}}` vào /api/config → GET lại |
+| 9 | Mass Assignment — tự cấp role admin | 25 | `POST /api/register?role=admin` → login → /api/me |
+| 10 | Blind SQLi — rút cờ từng ký tự | 40 | oracle boolean ở /track?code=; substr(flag,N,1) từ ctf_blind |
 
 ## Gợi ý theo lớp (đọc dần, đừng nhảy cóc)
 
@@ -37,6 +40,14 @@ node src/cli.js challenge http://127.0.0.1:3000    # xem 7 thử thách + gợi 
    payload `{"sub":"ctfsvc"}` → `/api/profile`. Chi tiết: `exercises/11-jwt.md`.
 7. **XXE:** entity `file:///flag-xxe.txt` trong POST /api/import.
    Chi tiết: `exercises/13-upload-xxe-stored-xss.md`.
+8. **Proto pollution:** JSON body `{"__proto__":{"isAdmin":true}}` — key nhiễm
+   enumerable lộ ra ở GET /api/config. Chi tiết: `exercises/14`.
+9. **Mass assign:** register kèm `?role=admin` — field query string bị gộp vào
+   user object. Cờ chỉ hiện ở `/api/me` khi user TỰ ĐĂNG KÝ có role admin.
+   Chi tiết: `exercises/14`.
+10. **Blind SQLi:** khó nhất — không có dữ liệu trong response, chỉ có
+    200 vs 404. Xác nhận oracle `AND 1=1`/`AND 1=2` rồi rút từng ký tự bằng
+    `substr`. Viết script tự động. Chi tiết: `exercises/15-blind-sqli.md`.
 
 ## Nộp cờ
 
@@ -62,7 +73,7 @@ Bạn sẽ thấy CHÍNH các request vừa làm xuất hiện trong log như d�
 Chạy lại trên bản hardened (`npm run serve:hardened -- --port 3001`) và dùng `detect`
 sau khi thử cùng payload — hardened chặn hết nhưng LOG vẫn ghi nhận đủ để phân tích.
 
-✅ **Hoàn thành khi:** score 170/170 (server xác nhận) + một bản chụp màn hình
+✅ **Hoàn thành khi:** score 265/265 (server xác nhận) + một bản chụp màn hình
 `detect` hiện đúng các nhóm dấu hiệu từ session của bạn + 3 câu trả lời:
 
 1. Vì sao cờ phải sinh theo phiên (không hardcode)?

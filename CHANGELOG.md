@@ -4,6 +4,55 @@ Mọi thay đổi đáng chú ý của SecLab được ghi lại tại đây.
 Format theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản
 theo [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [1.2.0] — 2026-10
+
+### Thêm
+
+- **LAB-16 Prototype Pollution** — `POST/GET /api/config` merge đệ quy không
+  lọc `__proto__` (vuln, `unsafeMerge`) ↔ `safeMerge` lọc
+  `__proto__/constructor/prototype` (hardened). Cờ CTF #8 lộ ra khi
+  `Object.prototype` bị nhiễm (`protoPolluted` liệt kê key enumerable).
+- **LAB-17 Mass Assignment** — `POST /api/register` copy mọi field kể cả
+  query `?role=admin` (vuln) ↔ whitelist `username`/`password`, role gán
+  cứng `user` (hardened). Cờ CTF #9 ở `GET /api/me` khi user tự đăng ký
+  có `role=admin`.
+- **LAB-18 Blind SQL Injection** — `GET /track?code=` là oracle boolean
+  (200 "TỒN TẠI" vs 404), rút cờ từng ký tự từ bảng ẩn `ctf_blind` bằng
+  `substr()` (CTF #10 — 40 điểm, khó nhất). `trackShipmentSafe()`
+  parameterized làm oracle biến mất. Hai bảng mới `shipments`/`ctf_blind`
+  trong `src/db.js` (SQLite + fallback memory mô phỏng injection).
+- **LAB-19 Reset token yếu** — `/api/reset/request` + `/api/reset/confirm`:
+  token `md5(username)[0:12]` dự đoán được và trả trong response (vuln) ↔
+  `crypto.randomBytes(16)` + TTL 10 phút + dùng một lần + không lộ token
+  (hardened).
+- **LAB-20 DOM-based XSS** — `/dom` render `location.hash` bằng `innerHTML`
+  (vuln) ↔ `textContent` (hardened). Payload trong `#fragment` không lên
+  server — bài học về telemetry mù.
+- **CTF mở rộng 7 → 10 thử thách (265 điểm)**: proto pollution, mass
+  assignment, blind SQLi.
+- **Scanner 14 → 19 probe**: PROTO, MASS, BLIND, RESET, DOMXSS.
+- **Detect mở rộng**: 4 pattern mới — proto-pollution, mass-assign,
+  blind-sqli (behavioral, đếm theo IP), reset-abuse.
+- **`docs/10-detection-engineering.md`** — từ access log tới alert: bảng 16
+  rule hiện có, signature vs behavioral detection, vòng đời rule,
+  giới hạn telemetry.
+- **`docs/11-case-study-thuc-chien.md`** — 3 case study (blind SQLi, mass
+  assignment, proto pollution) theo chu trình tấn công → phát hiện → vá →
+  chứng minh.
+- **Exercises 13 → 17 bài**: 14 proto+mass, 15 blind SQLi, 16 reset+DOM,
+  17 detection engineering.
+- **`tests/lab16-20.test.js`** — 14 test đối chứng mới; e2e thêm nhóm H
+  (5 check) → **59/59**; unit **134/134**.
+- Response `/_lab/verify` trả thêm `count` — CLI in `x/10` động thay vì
+  hardcode.
+
+### Sửa
+
+- Đồng bộ toàn bộ số liệu tài liệu: 15→20 lỗ hổng, 7→10 CTF/170→265đ,
+  14→19 probe, 13→17 bài tập, 115→134 test, 54→59 e2e, scan vuln
+  10H/4M → 14H/5M — README, cheat-sheet, OWASP map (5 dòng LAB mới),
+  e2e checklist, instructor guide (thêm buổi 4b), 9 chuyên mục hub.
+
 ## [1.1.0] — 2025-10
 
 ### Thêm

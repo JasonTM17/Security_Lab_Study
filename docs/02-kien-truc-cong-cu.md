@@ -25,14 +25,14 @@
 │      │     │                     tôn trọng robots.txt + rate-limit lịch sự        │
 │      │     ├── detect.js        🕵 BLUE-TEAM: phân tích /_lab/log — SQLi, XSS,    │
 │      │     │                     traversal, cmdinj, XXE, brute-force…             │
-│      │     ├── challenge.js      client CTF: liệt kê + nộp cờ (7 thử thách)       │
+│      │     ├── challenge.js      client CTF: liệt kê + nộp cờ (10 thử thách)      │
 │      │     ├── codec.js          mã hoá nền tảng: b64/hex/url/rot13/hash          │
 │      │     ├── jwttool.js        JWT cục bộ: decode/forge/verify/crack từ điển    │
 │      │     ├── http.js           helper dùng chung: fetch có timeout, percentile  │
 │      │     └── report.js         xuất báo cáo .md + .html vào reports/            │
 │      │                                                                            │
 │      ├──► src/lab/              MỤC TIÊU THỰC HÀNH (bind cứng 127.0.0.1)          │
-│      │     ├── app.js           2 chế độ: vuln (15 lỗ hổng) / hardened (đã vá)    │
+│      │     ├── app.js           2 chế độ: vuln (20 lỗ hổng) / hardened (đã vá)    │
 │      │     ├── jwtx.js          JWT tối giản HS256/none phục vụ bài LAB-11        │
 │      │     └── serve.js          chạy server, in thông tin                        │
 │      │                                                                            │

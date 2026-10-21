@@ -47,11 +47,11 @@ Chi tiết: `docs/01-phap-ly-va-dao-duc.md` và chuyên mục 07 của SecHub
 | Buổi | Nội dung | Bài tập | Demo chính |
 |---|---|---|---|
 | **1. Nền tảng & pháp lý** | Mô hình lab, guard, vuln↔hardened | `exercises/01` | `doctor` → `serve` → mở trình duyệt → `scan` vào public bị chặn |
-| **2. Thăm dò & quét** | Recon, scanner 14 probe, đọc finding | `exercises/02`, `03` | `recon` → `scan` vuln (10 High + 4 Medium) → mở báo cáo HTML trong `reports/` |
+| **2. Thăm dò & quét** | Recon, scanner 19 probe, đọc finding | `exercises/02`, `03` | `recon` → `scan` vuln (14 High + 5 Medium) → mở báo cáo HTML trong `reports/` |
 | **3. Khai thác web** | SQLi, XSS, IDOR, traversal | `exercises/04` | `' OR 1=1 --` ở `/search`; `<script>alert(1)</script>`; `/api/users/4`; `/download?name=../flag-ctf.txt` |
-| **4. Lỗ hổng nâng cao** | Command injection, CSRF, JWT, open redirect, upload, XXE, stored XSS | `exercises/10`–`13` | `& set SECLAB` / `; env`; `jwt crack` → `jwt forge`; upload `.html`; `<!ENTITY SYSTEM>` |
+| **4. Lỗ hổng nâng cao** | Command injection, CSRF, JWT, open redirect, upload, XXE, stored XSS, proto pollution, mass assignment, blind SQLi, reset token, DOM XSS | `exercises/10`–`16` | `& set SECLAB` / `; env`; `jwt crack` → `jwt forge`; upload `.html`; `<!ENTITY SYSTEM>`; `{"__proto__":{...}}`; `?role=admin`; oracle `/track`; `md5(username)`; `/dom#` |
 | **5. Tải & phòng thủ** | HTTP flood, slowloris, rate limit, timeout, detect | `exercises/05`, `06` | `loadtest` 50 rps vào `/slow` → p95 ~3s vuln vs 429 cứng hardened; `slowloris` 100 socket; `detect` đọc log |
-| **6. CTF & tổng kết** | Thi đấu CTF 7 thử thách/170đ, viết báo cáo | `exercises/08`, `09` | `challenge` xem danh sách → nhóm tự khai thác → nộp cờ qua `/_lab/verify` |
+| **6. CTF & tổng kết** | Thi đấu CTF 10 thử thách/265đ, viết báo cáo | `exercises/08`, `09` | `challenge` xem danh sách → nhóm tự khai thác → nộp cờ qua `/_lab/verify` |
 
 Buổi 1–2 là nền bắt buộc; buổi 3–6 có thể tách thành chuỗi workshop riêng.
 
@@ -62,7 +62,7 @@ Buổi 1–2 là nền bắt buộc; buổi 3–6 có thể tách thành chuỗi
 ```bash
 npm run serve                                          # terminal 1: lab vuln :3000
 node src/cli.js recon http://127.0.0.1:3000            # headers + fingerprint
-node src/cli.js scan http://127.0.0.1:3000             # → 10 High, 4 Medium; báo cáo vào reports/
+node src/cli.js scan http://127.0.0.1:3000             # → 14 High, 5 Medium; báo cáo vào reports/
 npm run serve:hardened -- --port 3001                  # terminal 2: bản đã vá :3001
 node src/cli.js scan http://127.0.0.1:3001             # → hầu hết "Đạt"
 ```
@@ -113,8 +113,8 @@ node src/cli.js detect http://127.0.0.1:3000                                    
 
 - **Bài tập**: mỗi file `exercises/` có checklist "Tiêu chí hoàn thành" — chấm
   theo checkbox, yêu cầu nộp kèm output/command đã chạy.
-- **CTF**: điểm theo `/_lab/challenges` (tổng 170). Gợi ý: ≥ 60 điểm = đạt,
-  ≥ 120 = khá, 170 = xuất sắc. Cờ per-session nên bắt buộc demo lại trực tiếp.
+- **CTF**: điểm theo `/_lab/challenges` (tổng 265). Gợi ý: ≥ 60 điểm = đạt,
+  ≥ 160 = khá, 265 = xuất sắc. Cờ per-session nên bắt buộc demo lại trực tiếp.
 - **Báo cáo**: yêu cầu nộp 1 file `reports/*.md` do chính `scan` sinh ra + 1
   trang nhận xét "vì sao hardened đạt" — đánh giá tư duy phòng thủ.
 

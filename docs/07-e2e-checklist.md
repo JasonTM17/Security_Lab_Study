@@ -1,12 +1,12 @@
 # 07 · Ma trận E2E tự kiểm thử — kết quả đã chạy thật
 
 > Hai tầng kiểm thử bổ trợ nhau:
-> **(1) `npm run e2e`** — 54 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
+> **(1) `npm run e2e`** — 59 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
 > **(2) Browser E2E qua browser-use** — chính trình duyệt thật (webview Chromium) thao tác như người dùng: click, điền form, cookie jar thật, chụp màn hình.
 
-Kết quả lần chạy gần nhất (2026-10-21): **E2E 54/54 PASS · Browser E2E 30/30 PASS**.
+Kết quả lần chạy gần nhất (2026-10-21): **E2E 59/59 PASS · Browser E2E 30/30 PASS**.
 
-## Tầng 1 — `npm run e2e` (54 check, tự chứa)
+## Tầng 1 — `npm run e2e` (59 check, tự chứa)
 
 | Nhóm | Số check | Phủ những gì |
 |---|---|---|
@@ -14,8 +14,9 @@ Kết quả lần chạy gần nhất (2026-10-21): **E2E 54/54 PASS · Browser 
 | B. Hardened — luồng hợp lệ | 17 | trang chủ; search 1 dòng; SQLi → 0 dòng; XSS escape; login đúng + cookie HttpOnly/SameSite; SQLi bypass → 401 không lộ CSDL; IDOR 401; /admin 403; user đọc của mình 200; bob đọc người khác 403; download hợp lệ 200; traversal 400; /files 403; /slow chờ thật; metrics; security headers; logout |
 | C. Vuln — lỗ hổng phải TỒN TẠI (đối chứng) | 10 | SQLi boolean lộ ≥4 email; error-based lộ CSDL; XSS phản chiếu nguyên văn; bypass login thành công; cookie thiếu HttpOnly/SameSite; IDOR 200; /admin 200; traversal lộ LAB_SECRET; /files listing; phiên hoạt động |
 | D. Rate limit (instance riêng) | 2 | burst 28 → có 429; 429 kèm Retry-After |
-| F. CTF + log blue-team | 8 | 7 thử thách/170 điểm; cờ sqli trong dump; flag-ctf.txt; admin flag; idor apiKey; verify đúng/sai; /_lab/log entry; hardened tắt CTF |
+| F. CTF + log blue-team | 8 | 10 thử thách/265 điểm; cờ sqli trong dump; flag-ctf.txt; admin flag; idor apiKey; verify đúng/sai; /_lab/log entry; hardened tắt CTF |
 | G. Lỗ hổng mở rộng LAB-09..15 (đối chứng) | 8 | CMDI echo marker; JWT alg=none + weak secret; open redirect 302 vs 400; upload .html text/html vs 415; XXE resolve vs 400; stored XSS raw vs escaped; CSRF không token 200 vs 403 |
+| H. Lỗ hổng nâng cao LAB-16..20 (đối chứng) | 5 | proto pollution nhiễm prototype vs lọc sạch; mass assign role=admin vs user; blind SQLi oracle 200/404 vs 404; reset md5 đoán được vs random+one-time; DOM XSS innerHTML vs textContent |
 | E. Dọn dẹp | 1 | hub server đóng sạch |
 
 Ghi chú kỹ thuật: check A7 phải dùng **raw HTTP request** (`node:http`, không chuẩn hoá
@@ -55,8 +56,8 @@ Ghi chú kỹ thuật: check A7 phải dùng **raw HTTP request** (`node:http`, 
 ## Cách chạy lại
 
 ```bash
-npm test        # 115 unit/integration
-npm run e2e     # 54 E2E HTTP (tự khởi động server, port tạm)
+npm test        # 134 unit/integration
+npm run e2e     # 59 E2E HTTP (tự khởi động server, port tạm)
 node src/cli.js hub --port 4000   # rồi mở http://127.0.0.1:4000 xem hub
 node src/cli.js serve --hardened --port 3001  # lab để test tay trên trình duyệt
 ```

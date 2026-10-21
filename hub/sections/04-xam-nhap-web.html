@@ -1,7 +1,7 @@
 <section class="topic" id="chuong-04">
 <h2><span class="num">04</span> · Xâm nhập Web — OWASP Top 10 qua lăng kính lab SecLab</h2>
 
-<p>Khác với tấn công Phủ nhận Dịch vụ (chuyên mục 02) nhắm vào <em>độ sẵn sàng</em>, tấn công ứng dụng web nhắm vào <em>dữ liệu và quyền kiểm soát</em>. Danh sách <strong>OWASP Top 10</strong> (Open Worldwide Application Security Project) tổng hợp mười nhóm rủi ro web phổ biến nhất. Chuyên mục này giải thích cơ chế từng nhóm, cách phòng và đối chiếu với <strong>15 lỗ hổng</strong> được cài cố ý trong lab SecLab — <code>src/lab/app.js</code> với hai chế độ <code>vuln</code> (cố ý dễ tổn thương) và <code>hardened</code> (đã vá). Bản đồ đầy đủ LAB→OWASP→CWE nằm ở <code>docs/08-owasp-top10-mapping.md</code>.</p>
+<p>Khác với tấn công Phủ nhận Dịch vụ (chuyên mục 02) nhắm vào <em>độ sẵn sàng</em>, tấn công ứng dụng web nhắm vào <em>dữ liệu và quyền kiểm soát</em>. Danh sách <strong>OWASP Top 10</strong> (Open Worldwide Application Security Project) tổng hợp mười nhóm rủi ro web phổ biến nhất. Chuyên mục này giải thích cơ chế từng nhóm, cách phòng và đối chiếu với <strong>20 lỗ hổng</strong> được cài cố ý trong lab SecLab — <code>src/lab/app.js</code> với hai chế độ <code>vuln</code> (cố ý dễ tổn thương) và <code>hardened</code> (đã vá). Bản đồ đầy đủ LAB→OWASP→CWE nằm ở <code>docs/08-owasp-top10-mapping.md</code>.</p>
 
 <div class="card danger">
 <h4>⚠️ Cảnh báo pháp lý</h4>
@@ -26,7 +26,7 @@
 <li><span class="badge offense">XXE</span> — XML External Entity: parser XML xử lý <code>&lt;!ENTITY x SYSTEM "file:///..."&gt;</code> đọc file nội bộ và nhúng vào dữ liệu. Lab mô phỏng an toàn tuyệt đối trên filesystem ảo — cơ chế tấn công thật, hậu quả thật bằng không.</li>
 </ul>
 
-<h3>Bản đồ sang 15 lỗ hổng của lab SecLab</h3>
+<h3>Bản đồ sang 20 lỗ hổng của lab SecLab</h3>
 
 <table>
 <tr><th>Mã</th><th>Điểm tiếp xúc</th><th>Cơ chế lỗi (vuln)</th><th>Cách vá (hardened)</th></tr>
@@ -45,6 +45,11 @@
 <tr><td>LAB-13 · Unrestricted Upload</td><td><code>POST /upload</code>, <code>GET /uploads/:name</code></td><td>Mọi đuôi file, serve <code>.html</code> đúng MIME (<code>src/lab/app.js:559-627</code>)</td><td>Whitelist đuôi + ép <code>Content-Type</code> an toàn</td></tr>
 <tr><td>LAB-14 · XXE</td><td><code>POST /api/import</code></td><td>Xử lý <code>&lt;!ENTITY SYSTEM "file://…"&gt;</code> trên VFS (<code>src/lab/app.js:628-649</code>)</td><td>Từ chối mọi <code>DOCTYPE</code>/<code>ENTITY</code></td></tr>
 <tr><td>LAB-15 · Stored XSS</td><td><code>/guestbook</code></td><td>Lưu comment rồi render không escape (<code>src/lab/app.js:650-675</code>)</td><td><code>esc()</code> khi render mọi entry</td></tr>
+<tr><td>LAB-16 · Prototype Pollution</td><td><code>POST/GET /api/config</code></td><td><code>unsafeMerge()</code> đi xuyên <code>__proto__</code> — nhiễm Object.prototype toàn cục (<code>src/lab/app.js:199-212,752-779</code>)</td><td><code>safeMerge()</code> lọc <code>__proto__/constructor/prototype</code> (<code>src/lab/app.js:214-225</code>)</td></tr>
+<tr><td>LAB-17 · Mass Assignment</td><td><code>POST /api/register</code></td><td>Copy mọi field — kể cả query <code>?role=admin</code> — vào user object (<code>src/lab/app.js:781-806</code>)</td><td>Whitelist cứng username+password, role gán <code>'user'</code></td></tr>
+<tr><td>LAB-18 · Blind SQLi</td><td><code>/track?code=</code></td><td>Oracle boolean: <code>AND 1=1</code> → 200, <code>AND 1=2</code> → 404 — rút CSDL từng ký tự (<code>src/lab/app.js:808-819</code>, <code>src/db.js</code>)</td><td><code>trackShipmentSafe()</code> parameterized — oracle chết</td></tr>
+<tr><td>LAB-19 · Reset token yếu</td><td><code>/api/reset/request</code>, <code>/api/reset/confirm</code></td><td>Token = <code>md5(username)[0:12]</code> — dự đoán được, trả trong response (<code>src/lab/app.js:821-862</code>)</td><td><code>crypto.randomBytes(16)</code> + TTL 10 phút + dùng một lần</td></tr>
+<tr><td>LAB-20 · DOM XSS</td><td><code>/dom</code></td><td><code>location.hash</code> → <code>innerHTML</code> — payload trong #fragment không lên server (<code>src/lab/app.js:864-885</code>)</td><td><code>textContent</code> thay innerHTML</td></tr>
 </table>
 
 <h3>Bốn trụ cột phòng thủ</h3>
@@ -75,14 +80,14 @@ node src/cli.js scan http://127.0.0.1:3000     <span class="cmt"># quét SQLi, X
 npm run serve:hardened -- --port 3001          <span class="cmt"># bản đã vá — bắt buộc port khác để chạy song song</span>
 node src/cli.js scan http://127.0.0.1:3001     <span class="cmt"># so sánh trước/sau vá</span></pre>
 
-<p><span class="badge lab">lab</span> Scanner <code>src/modules/vulnscan.js</code> gửi <strong>14 nhóm probe</strong> kiểm chứng: so số dòng kết quả giữa hai giá trị tìm kiếm để phát hiện SQLi boolean-based (<code>src/modules/vulnscan.js:10-48</code>), kiểm tra security headers còn thiếu (<code>src/modules/vulnscan.js:82-105</code>), thử nối lệnh ở <code>/tools/ping</code> (CMDI), gửi form CSRF không token, forge JWT <code>alg=none</code>, kiểm redirect tới domain ngoài, upload <code>.html</code> thử, POST XML có <code>DOCTYPE</code> và cài payload stored XSS ở guestbook. Mỗi finding kèm mức độ, bằng chứng, cách vá; báo cáo .md/.html ghi vào <code>reports/</code> (<code>src/cli.js:244-255</code>). Bản vuln thật báo <strong>10 High + 4 Medium</strong> (SQLI, XSS reflected+stored, CMDI, CSRF, JWT, OREDIR, UPLOAD, XXE, IDOR); cùng lệnh trên bản hardened hầu hết chuyển sang "Đạt" — vì vá nằm ở lớp server-side, đúng chỗ dữ liệu và lệnh trộn lẫn. Làm sâu hơn theo <code>exercises/03-quet-lo-hong.md</code>, <code>exercises/04-tan-cong-lab.md</code>, <code>exercises/10-13</code> (bảy lỗ hổng mới) và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+<p><span class="badge lab">lab</span> Scanner <code>src/modules/vulnscan.js</code> gửi <strong>19 nhóm probe</strong> kiểm chứng: so số dòng kết quả giữa hai giá trị tìm kiếm để phát hiện SQLi boolean-based, kiểm tra security headers còn thiếu, thử nối lệnh ở <code>/tools/ping</code> (CMDI), gửi form CSRF không token, forge JWT <code>alg=none</code>, kiểm redirect tới domain ngoài, upload <code>.html</code> thử, POST XML có <code>DOCTYPE</code>, cài payload stored XSS ở guestbook — và năm probe nâng cao: POST <code>{"__proto__":{...}}</code> rồi đọc <code>protoPolluted</code>, đăng ký kèm <code>?role=admin</code>, oracle boolean ở <code>/track</code>, đoán token reset bằng md5(username), và phân tích source/sink DOM XSS ở <code>/dom</code>. Mỗi finding kèm mức độ, bằng chứng, cách vá; báo cáo .md/.html ghi vào <code>reports/</code>. Bản vuln thật báo <strong>14 High + 5 Medium</strong>; cùng lệnh trên bản hardened hầu hết chuyển sang "Đạt" — vì vá nằm ở lớp server-side, đúng chỗ dữ liệu và lệnh trộn lẫn. Làm sâu hơn theo <code>exercises/03-quet-lo-hong.md</code>, <code>exercises/04-tan-cong-lab.md</code>, <code>exercises/10-16</code> (lỗ hổng nâng cao) và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
 
 <div class="card ok">
 <h4>Điểm cần nhớ</h4>
 <ul>
 <li>SQL Injection, XSS, IDOR, SSRF, Path Traversal chung một gốc: <strong>dữ liệu người dùng bị coi là lệnh hoặc tin tưởng quá mức</strong> — vá ở điểm trộn dữ liệu/lệnh, đừng chỉ lọc payload.</li>
 <li>Bốn trụ cột phòng thủ web: parameterized query, output encoding, kiểm tra quyền trên server theo phiên, allowlist.</li>
-<li>Lab chứa 15 lỗ hổng LAB-01→LAB-15 trong <code>src/lab/app.js</code>; <code>node src/cli.js scan</code> (14 probe) trên cả hai chế độ cho thấy khác biệt trước/sau vá — bản vuln thật báo <strong>10 High + 4 Medium</strong>.</li>
+<li>Lab chứa 20 lỗ hổng LAB-01→LAB-20 trong <code>src/lab/app.js</code>; <code>node src/cli.js scan</code> (19 probe) trên cả hai chế độ cho thấy khác biệt trước/sau vá — bản vuln thật báo <strong>14 High + 5 Medium</strong>.</li>
 <li>Security headers, cờ cookie, rate limit chỉ là lớp bổ sung, không thay thế bốn trụ cột.</li>
 <li>Thực hành chỉ trên 127.0.0.1; quét hay khai thác hệ thống người khác vi phạm Điều 287 BLHS 2015.</li>
 </ul>

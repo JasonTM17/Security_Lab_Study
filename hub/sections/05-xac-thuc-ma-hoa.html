@@ -14,7 +14,7 @@
   <tr><td>bcrypt / Argon2id + salt</td><td>Phải dò từng tài khoản riêng, mỗi bản hàng giờ</td><td>Chuẩn hiện nay</td></tr>
 </table>
 
-<p>Lab SecLab khởi tạo bảng <code>users</code> bằng SHA-256 không salt tại <code>src/db.js:16</code> — tốt hơn plain text, nhưng chủ ý để lộ khoảng cách tới bcrypt/Argon2id. <strong>Lưu ý quan trọng: khoảng cách này vẫn ngỏ ở bản hardened</strong> — <code>loginSafe()</code> (<code>src/db.js:77</code>) vẫn băm cùng một hàm SHA-256 như bản vuln, và mục "lưu mật khẩu" không nằm trong bảng 15 lỗ hổng LAB-01→15 của chuyên mục 04. Nói cách khác, bản hardened <em>không</em> vá điểm này: nâng lên chuẩn bcrypt/Argon2id (thư viện ngoài, Node không có sẵn) là bài tập mở rộng dành cho bạn.</p>
+<p>Lab SecLab khởi tạo bảng <code>users</code> bằng SHA-256 không salt tại <code>src/db.js:16</code> — tốt hơn plain text, nhưng chủ ý để lộ khoảng cách tới bcrypt/Argon2id. <strong>Lưu ý quan trọng: khoảng cách này vẫn ngỏ ở bản hardened</strong> — <code>loginSafe()</code> (<code>src/db.js:77</code>) vẫn băm cùng một hàm SHA-256 như bản vuln, và mục "lưu mật khẩu" không nằm trong bảng 20 lỗ hổng LAB-01→20 của chuyên mục 04. Nói cách khác, bản hardened <em>không</em> vá điểm này: nâng lên chuẩn bcrypt/Argon2id (thư viện ngoài, Node không có sẵn) là bài tập mở rộng dành cho bạn.</p>
 
 <h3>Salt và pepper: hai lớp khác nhau</h3>
 
