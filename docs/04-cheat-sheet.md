@@ -24,6 +24,9 @@ node src/cli.js flowtest http://127.0.0.1:3000 --users=6 --iterations=8 --think=
 node src/cli.js slowloris http://127.0.0.1:3000 --sockets 100 --duration 20
 node src/cli.js crawl --url=https://example.com --max-pages=20 --depth=2    # web CÔNG KHAI, lịch sự
 node src/cli.js crawl --url=http://127.0.0.1:3000 --i-own-this-target       # tập trên lab (guard ngược chiều)
+node src/cli.js detect http://127.0.0.1:3000                                # blue-team: đọc /_lab/log, nhận diện tấn công
+node src/cli.js challenge http://127.0.0.1:3000                             # CTF: 7 thử thách / 170 điểm
+node src/cli.js codec encode b64 "xinchao"                                  # codec: b64/hex/url/rot13/sha256
 
 # dải mạng riêng (10.x/172.16-31.x/192.168.x) — chỉ khi bạn SỞ HỮU hệ thống:
 node src/cli.js scan http://192.168.1.50:3000 --i-own-this-target

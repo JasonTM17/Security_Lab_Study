@@ -14,7 +14,7 @@
   <tr><td>bcrypt / Argon2id + salt</td><td>Phải dò từng tài khoản riêng, mỗi bản hàng giờ</td><td>Chuẩn hiện nay</td></tr>
 </table>
 
-<p>Lab SecLab khởi tạo bảng <code>users</code> bằng SHA-256 không salt tại <code>src/db.js:16,39</code> — tốt hơn plain text, nhưng chủ ý để lộ khoảng cách tới bcrypt/Argon2id. <strong>Lưu ý quan trọng: khoảng cách này vẫn ngỏ ở bản hardened</strong> — <code>loginSafe()</code> (<code>src/db.js:77-81</code>) vẫn băm cùng một hàm SHA-256 như bản vuln, và mục "lưu mật khẩu" không nằm trong bảng 8 lỗ hổng LAB-01→08 của chuyên mục 04. Nói cách khác, bản hardened <em>không</em> vá điểm này: nâng lên chuẩn bcrypt/Argon2id (thư viện ngoài, Node không có sẵn) là bài tập mở rộng dành cho bạn.</p>
+<p>Lab SecLab khởi tạo bảng <code>users</code> bằng SHA-256 không salt tại <code>src/db.js:16</code> — tốt hơn plain text, nhưng chủ ý để lộ khoảng cách tới bcrypt/Argon2id. <strong>Lưu ý quan trọng: khoảng cách này vẫn ngỏ ở bản hardened</strong> — <code>loginSafe()</code> (<code>src/db.js:77</code>) vẫn băm cùng một hàm SHA-256 như bản vuln, và mục "lưu mật khẩu" không nằm trong bảng 15 lỗ hổng LAB-01→15 của chuyên mục 04. Nói cách khác, bản hardened <em>không</em> vá điểm này: nâng lên chuẩn bcrypt/Argon2id (thư viện ngoài, Node không có sẵn) là bài tập mở rộng dành cho bạn.</p>
 
 <h3>Salt và pepper: hai lớp khác nhau</h3>
 
@@ -26,7 +26,15 @@
 
 <h3>Session cookie hay JWT?</h3>
 
-<p>Sau đăng nhập, trạng thái "đã xác thực" được giữ theo hai mẫu thiết kế. <strong>Phiên (session) + cookie</strong>: cookie chỉ chứa số định danh ngẫu nhiên (sid), máy chủ giữ bảng ánh xạ sid → người dùng — trong lab là một <code>Map</code> tại <code>src/lab/app.js:111</code> — và có thể hủy phiên bất cứ lúc nào. <strong>JWT (JSON Web Token)</strong>: token tự mô tả, được ký số, máy chủ không cần tra cứu — nhưng thu hồi trước hạn rất khó, token rò rỉ sống đến hết hạn. Cookie phiên của lab bản vuln không kèm cờ bảo mật; bản hardened thêm <code>HttpOnly; SameSite=Strict</code> tại <code>src/lab/app.js:237-238</code> (LAB-05). Thiếu HttpOnly, JavaScript độc (qua lỗi XSS) đọc được cookie phiên; thiếu SameSite, cookie phiên có thể bị lợi dụng trong CSRF (Cross-Site Request Forgery): bạn đang đăng nhập vào một site, một site khác khiến trình duyệt gửi request tới site đó — và trình duyệt tự kèm cookie phiên theo; SameSite=Strict chặn việc gửi cookie trong những request đến từ site khác.</p>
+<p>Sau đăng nhập, trạng thái "đã xác thực" được giữ theo hai mẫu thiết kế. <strong>Phiên (session) + cookie</strong>: cookie chỉ chứa số định danh ngẫu nhiên (sid), máy chủ giữ bảng ánh xạ sid → người dùng — trong lab là một <code>Map</code> tại <code>src/lab/app.js:192</code> — và có thể hủy phiên bất cứ lúc nào. <strong>JWT (JSON Web Token)</strong>: token tự mô tả, được ký số, máy chủ không cần tra cứu — nhưng thu hồi trước hạn rất khó, token rò rỉ sống đến hết hạn. Cookie phiên của lab bản vuln không kèm cờ bảo mật; bản hardened thêm <code>HttpOnly; SameSite=Strict</code> tại <code>src/lab/app.js:362</code> (LAB-05). Thiếu HttpOnly, JavaScript độc (qua lỗi XSS) đọc được cookie phiên; thiếu SameSite, cookie phiên có thể bị lợi dụng trong CSRF (Cross-Site Request Forgery): bạn đang đăng nhập vào một site, một site khác khiến trình duyệt gửi request tới site đó — và trình duyệt tự kèm cookie phiên theo; SameSite=Strict chặn việc gửi cookie trong những request đến từ site khác.</p>
+
+<p><strong>JWT yếu — LAB-11 làm thật.</strong> Một JWT gồm ba phần base64url: <code>header.payload.signature</code>. Hai sai lầm kinh điển mà lab tái hiện tại <code>POST /api/token</code> + <code>GET /api/profile</code> (<code>src/lab/app.js:521-546</code>, ký/verify ở <code>src/lab/jwtx.js</code>): <em>(1)</em> server chấp nhận <code>alg=none</code> — header xin "đừng kiểm chữ ký" và bản vuln nghe theo, nên forge payload <code>{"sub":"ctfsvc"}</code> là đăng nhập được không cần mật khẩu; <em>(2)</em> secret ký HS256 quá yếu (<code>secret123</code>) — ai có token là crack offline bằng từ điển được, rồi tự ký token giả hợp lệ. Thử ngay bằng công cụ đi kèm (chạy hoàn toàn cục bộ):</p>
+
+<pre class="cmd">node src/cli.js jwt decode &lt;token&gt;                          <span class="cmt"># tách 3 phần, xem header+payload</span>
+node src/cli.js jwt crack &lt;token&gt;                           <span class="cmt"># dò secret bằng từ điển → tìm ra secret123</span>
+node src/cli.js jwt forge --payload='{"sub":"ctfsvc"}' --alg=none   <span class="cmt"># token không chữ ký bản vuln vẫn nhận</span></pre>
+
+<p>Bản hardened vá cả hai: từ chối mọi token <code>alg=none</code>, chỉ nhận <code>HS256</code> và ký bằng secret sinh ngẫu nhiên mỗi phiên — token vuln forge được không qua nổi verify. Bài tập đi kèm: <code>exercises/11-jwt.md</code>; module độc lập: <code>src/modules/jwttool.js</code>.</p>
 
 <h3>Least privilege — quyền hạn tối thiểu</h3>
 
@@ -49,7 +57,7 @@
 
 <p>Công cụ cá nhân hiệu quả nhất là trình quản lý mật khẩu (password manager): sinh và nhớ mật khẩu ngẫu nhiên duy nhất cho từng dịch vụ, bạn chỉ cần thuộc một mật khẩu chính dài. Nó triệt tiêu credential stuffing tận gốc — vì không còn mật khẩu nào bị tái sử dụng.</p>
 
-<p>Trong lab, bản hardened đấu nối limiter token bucket (20 token, nạp 4/giây, trả <code>429</code> khi cạn) tại <code>src/lab/app.js:113,124</code> — vũ khí chống vét cạn mà bản vuln để mặc kị (LAB-06). Khởi động <code>node src/cli.js serve</code>, thử đăng nhập ở <code>/login</code> (LAB-01 — SQLi bypass: cửa xác thực bị vượt từ hướng khác), rồi chạy bản hardened ở port khác (<code>node src/cli.js serve --hardened --port 3001</code>) và quét lại bằng <code>node src/cli.js scan http://127.0.0.1:3001</code> để so sánh. Bài tập đi kèm trong <code>exercises/04-tan-cong-lab.md</code> và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
+<p>Trong lab, bản hardened đấu nối limiter token bucket (20 token, nạp 4/giây, trả <code>429</code> khi cạn) tại <code>src/lab/app.js:194,242</code> — vũ khí chống vét cạn mà bản vuln để mặc kị (LAB-06). Khởi động <code>node src/cli.js serve</code>, thử đăng nhập ở <code>/login</code> (LAB-01 — SQLi bypass: cửa xác thực bị vượt từ hướng khác), rồi chạy bản hardened ở port khác (<code>node src/cli.js serve --hardened --port 3001</code>) và quét lại bằng <code>node src/cli.js scan http://127.0.0.1:3001</code> để so sánh. Bài tập đi kèm trong <code>exercises/04-tan-cong-lab.md</code> và <code>exercises/06-phong-thu-va-bao-cao.md</code>.</p>
 
 <div class="card warn">
 <h4>⚠️ Cảnh báo pháp lý</h4>
