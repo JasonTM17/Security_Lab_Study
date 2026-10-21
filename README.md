@@ -31,6 +31,7 @@
 | 🛡 **Module phòng thủ** | `src/defense/` | Token-bucket rate limiter + security headers + CSRF token (synchronizer) |
 | 📄 **Báo cáo** | `src/modules/report.js` | Xuất `.md` + `.html` vào `reports/` (crawl xuất `.md` + `.json`) |
 | 📚 **Tài liệu & 17 bài thực hành** | `docs/`, `exercises/` | Pháp lý → kiến trúc → DoS/DDoS → cheat sheet → scraping → E2E → **bản đồ OWASP Top 10** → detection engineering → case study thực chiến → bài tập có tiêu chí hoàn thành |
+| 🔑 **Lời giải & solver đa ngôn ngữ** | `solutions/` | Writeup 10 CTF (recon → root cause → exploit → vá), solver **chạy được** bằng Node.js/Python/Bash/PowerShell (verify 10/10 · 265đ), answer key 17 bài tập — cùng guard `--i-own-this-target` |
 | ✅ **134 unit/integration tests** | `tests/` | Bao gồm test GUARD chặn public + test đối chứng 20 lỗ hổng vuln/hardened |
 | ⚙️ **CI workflow** | `.github/workflows/ci.yml` | GitHub Actions: unit + E2E trên Node 22/24 × Ubuntu + Windows |
 
@@ -40,7 +41,7 @@ Không có dependency ngoài nào — chỉ dùng thư viện chuẩn Node ≥ 2
 ## Bắt đầu trong 60 giây
 
 ```bash
-npm test                       # 115/115 pass (unit + integration)
+npm test                       # 134/134 pass (unit + integration)
 npm run e2e                    # 59/59 E2E HTTP — tự khởi động 3 server, tự đối chứng vuln/hardened
 npm run serve                  # lab CỐ Ý DỄ TỔN THƯƠNG → http://127.0.0.1:3000
 ```
@@ -108,6 +109,11 @@ Nội dung nằm trong `hub/` (shell + 9 section HTML + bản ghép `hub/index.h
 được cả khi mở trực tiếp file). Server tĩnh có chống path-traversal (đã test 403).
 Sửa một chuyên mục xong, ghép lại bằng: `node scripts/assemble-hub.js`.
 
+**SecHub Online:** bản `hub/index.html` được deploy lên GitHub Pages bởi
+`.github/workflows/pages.yml` — bật ở repo Settings → Pages → Source = "GitHub
+Actions", sau đó mọi push đụng `hub/` sẽ tự publish tại
+`https://jasontm17.github.io/Security_Lab_Study/`.
+
 Nội dung hub đã qua quy trình **độc giả độc lập**: 10 nhận xét (2 High — gồm sai
 khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; tên tội danh Điều
 287/288 thống nhất; tham chiếu chéo sai; lệnh thiếu cờ; thuật ngữ chưa giải thích)
@@ -149,6 +155,7 @@ khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; t�
 │   ├── defense/          # ratelimiter (token bucket), headers, csrf
 │   └── utils/color.js
 ├── tests/                # 134 test + e2e.mjs 59 check
+├── solutions/            # 🔑 writeup 10 CTF + solver Node/Py/Bash/PS1 + answer key 17 bài
 ├── docs/                 # pháp lý · kiến trúc · DoS/DDoS · cheat sheet · scraping · OWASP map · detection eng · case study · instructor guide · images/
 ├── exercises/            # 17 bài thực hành có tiêu chí hoàn thành
 ├── reports/              # output quét (gitignored)

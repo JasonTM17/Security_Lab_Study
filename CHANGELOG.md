@@ -4,6 +4,25 @@ Mọi thay đổi đáng chú ý của SecLab được ghi lại tại đây.
 Format theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản
 theo [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [1.3.0] — 2026-10
+
+### Thêm
+
+- **`solutions/` — bộ lời giải hoàn chỉnh** (cho người dạy / tự đối chiếu):
+  - Writeup 10 CTF (`ctf-01-05.md`, `ctf-06-10.md`): mỗi bài gồm mục tiêu,
+    root cause kèm ref code, exploit copy-chạy, cách lấy cờ, hành vi bản
+    hardened, và bài học phòng thủ.
+  - **Solver thực thi bằng 4 ngôn ngữ** — `solve-all.mjs` (Node fetch),
+    `solve_all.py` (stdlib urllib), `solve-all.sh` (bash+curl),
+    `Solve-All.ps1` (PowerShell ≥5.1). Cùng giải 10/10 · 265/265 trên lab
+    vuln sống; exit code 0 dùng được làm smoke-test CI.
+  - **Answer key 17 bài tập** (`exercises/answers-*.md`): đáp án từng
+    tiêu chí hoàn thành + lỗi học viên hay mắc + câu trả lời câu hỏi mở.
+  - Solver tuân thủ cùng mô hình an toàn `guard.js`: từ chối mục tiêu
+    không-loopback trừ khi `--i-own-this-target`.
+- **GitHub Pages cho SecHub** — `.github/workflows/pages.yml` deploy `hub/`
+  tự động khi push đụng `hub/**`; README hướng dẫn bật Pages.
+
 ## [1.2.0] — 2026-10
 
 ### Thêm
