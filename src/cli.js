@@ -19,6 +19,7 @@ import { runFlowTest } from './modules/flowload.js';
 import { runDetect } from './modules/detect.js';
 import { listChallenges, submitFlag } from './modules/challenge.js';
 import { runCodec, hashText, explain } from './modules/codec.js';
+import { jwtDecode, jwtSign, jwtVerify, crackJwt, loadWordlist, DEFAULT_WORDLIST } from './modules/jwttool.js';
 import { createHubServer, hubBanner } from './hub/serve.js';
 import { writeReport } from './modules/report.js';
 
@@ -60,13 +61,20 @@ function usage() {
         scanner từ log request, kèm BIỆN PHÁP PHÒNG THỦ tương ứng từng phát hiện
 
   ${c.cyan('challenge')} <target> [--submit=N --flag='FLAG{...}']
-        Chế độ CTF: 4 thử thách (SQLi/Traversal/IDOR/Admin), cờ sinh ngẫu nhiên
+        Chế độ CTF: 7 thử thách (SQLi/Traversal/IDOR/Admin/CmdInj/JWT/XXE), cờ sinh ngẫu nhiên
         THEO PHIÊN lab — phải tự khai thác lỗ hổng để lấy cờ rồi nộp về server.
         Bản hardened từ chối nộp cờ: đã vá thì không còn đường lấy.
 
   ${c.cyan('codec')}   <op> <text>
         Bộ mã hoá nền tảng: b64enc/b64dec/hexenc/hexdec/urlenc/urldec/rot13,
         hoặc: codec hash sha256 <text>. Mỗi kết quả kèm bài học nó dạy.
+
+  ${c.cyan('jwt')}     <decode|forge|verify|crack> ...
+        Công cụ JWT cho bài LAB-11 (chạy cục bộ, không mạng):
+          jwt decode <token>
+          jwt forge --payload='{"sub":"ctfsvc"}' [--alg none] [--secret k]
+          jwt verify <token> --secret=k
+          jwt crack  <token> [--wordlist file.txt]   (từ điển secret yếu)
 
   ${c.cyan('hub')}      [--port 4000]
         Mở Hub học an toàn thông tin (SecHub) — 9 chuyên mục + mục lục,
@@ -380,8 +388,8 @@ async function main() {
           }
           if (r.ok) {
             console.log(`\n  ${c.green('✔ CHÍNH XÁC!')} Cờ thử thách #${submitId} được chấp nhận.`);
-            console.log(`  Điểm: ${c.bold(String(r.score))}/${r.total} · đã giải: ${r.solved.length}/4 thử thách`);
-            if (r.solved.length === 4) console.log(`  ${c.green('🏆 HOÀN THÀNH TOÀN BỘ CTF — bạn đã khai thác đủ 4 lớp lỗ hổng web!')}`);
+            console.log(`  Điểm: ${c.bold(String(r.score))}/${r.total} · đã giải: ${r.solved.length}/7 thử thách`);
+            if (r.solved.length === 7) console.log(`  ${c.green('🏆 HOÀN THÀNH TOÀN BỘ CTF — bạn đã khai thác đủ 7 lớp lỗ hổng web!')}`);
             console.log('');
           } else {
             console.log(`\n  ${c.red('✖ Cờ chưa đúng')} cho thử thách #${submitId}. Dùng lệnh challenge (không có --submit) để xem gợi ý.\n`);
@@ -398,6 +406,53 @@ async function main() {
           console.log(`       ${c.dim('gợi ý:')} ${ch.hint}`);
         }
         console.log(c.gray(`\n  💡 Cờ có dạng FLAG{ten-hash} và MỖI LẦN CHẠY LAB MỘT MẪU — tự khai thác, đừng tìm cờ của lần chạy khác.\n`));
+        break;
+      }
+
+      case 'jwt': {
+        const sub = str(positional[0], '');
+        const tokenArg = str(positional[1], '');
+        if (sub === 'decode') {
+          const d = jwtDecode(tokenArg);
+          if (!d) throw new Error('Token không hợp lệ (cần 3 phần base64url ngăn bởi dấu chấm).');
+          console.log(`\n  ${c.bold('JWT DECODE')} ${c.gray('(chỉ giải mã — KHÔNG xác minh chữ ký)')}`);
+          console.log(`  ${c.cyan('header   :')} ${JSON.stringify(d.header)}`);
+          console.log(`  ${c.cyan('payload  :')} ${JSON.stringify(d.payload)}`);
+          console.log(`  ${c.cyan('signature:')} ${d.signature || c.yellow('(rỗng — alg=none)')}`);
+          console.log(c.gray('\n  💡 Payload JWT chỉ là base64url — ai cũng đọc được. Đừng bao giờ nhét bí mật vào JWT.\n'));
+        } else if (sub === 'forge') {
+          const payloadText = str(flags.payload, '');
+          if (!payloadText) throw new Error('Cú pháp: jwt forge --payload=\'{"sub":"ctfsvc"}\' [--alg none] [--secret k]');
+          let payload;
+          try {
+            payload = JSON.parse(payloadText);
+          } catch {
+            throw new Error('--payload phải là JSON hợp lệ. Ví dụ: --payload=\'{"sub":"ctfsvc","role":"svc"}\'');
+          }
+          const alg = str(flags.alg, 'HS256');
+          const token = jwtSign(payload, str(flags.secret, ''), { alg });
+          console.log(`\n  ${c.bold('JWT FORGE')} (alg=${alg}${alg === 'HS256' ? `, secret=${str(flags.secret, '') || c.yellow('(rỗng!)')}` : ''})`);
+          console.log(`  ${c.green(token)}\n`);
+          console.log(c.gray('  💡 alg=none + chữ ký rỗng: server cấu hình sai sẽ chấp nhận token không ký. Thử GET /api/profile?token=<này> trên lab vuln.\n'));
+        } else if (sub === 'verify') {
+          const secret = str(flags.secret, '');
+          const v = jwtVerify(tokenArg, secret);
+          console.log(`\n  ${c.bold('JWT VERIFY')} (HS256)`);
+          console.log(`  ${v.ok ? c.green('✔ chữ ký hợp lệ') : c.red('✖ ' + v.error)}`);
+          if (v.payload) console.log(`  payload: ${JSON.stringify(v.payload)}\n`);
+        } else if (sub === 'crack') {
+          const wl = flags.wordlist ? loadWordlist(str(flags.wordlist, '')) : DEFAULT_WORDLIST;
+          console.log(`\n  ${c.bold('JWT CRACK')} — thử ${wl.length} secret trong từ điển…`);
+          const r = crackJwt(tokenArg, wl);
+          if (r.secret) {
+            console.log(`  ${c.green('✔ TÌM THẤY secret:')} ${c.bold(r.secret)} (sau ${r.tried} lần thử)`);
+            console.log(c.gray('  💡 Bài học: khoá HMAC yếu → attacker tải token về và brute-force OFFLINE. Chữ ký JWT không "giấu" gì cả.\n'));
+          } else {
+            console.log(`  ${c.yellow('✖')} Không crack được sau ${r.tried} lần thử${r.reason ? ` (${r.reason})` : ''} — secret đủ mạnh. Thử --wordlist=rockyou.txt.\n`);
+          }
+        } else {
+          throw new Error('Cú pháp: jwt <decode|forge|verify|crack> … (xem help)');
+        }
         break;
       }
 
