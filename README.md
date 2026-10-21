@@ -10,21 +10,22 @@
 
 | Thành phần | File | Làm gì |
 |---|---|---|
-| 🔴 **Lab web có 8 lỗ hổng chủ đích** | `src/lab/app.js` | SQL Injection, XSS, IDOR, Path Traversal, directory listing, thiếu headers/rate limit/authz — kiểu DVWA/Juice Shop thu nhỏ |
-| 🏆 **Chế độ CTF** | `challenge` + `/_lab/challenges` | 4 thử thách 100 điểm, cờ `FLAG{...}` sinh ngẫu nhiên THEO PHIÊN lab — tự khai thác để lấy, server xác minh bằng timing-safe compare; hardened từ chối nhận cờ |
-| 🕵️ **Blue-team detect** | `detect` + `/_lab/log` | phân tích log request: nhận diện SQLi/XSS/traversal/dò admin/scanner, mỗi phát hiện kèm biện pháp phòng thủ tương ứng |
-| 🔐 **Codec — bộ mã hoá nền tảng** | `codec` | b64/hex/url/rot13/hash, mỗi kết quả kèm bài học (vì sao Base64 không phải mã hoá bảo mật, vì sao MD5 đã chết…) |
-| 🟢 **Bản đã vá (hardened) để so sánh** | cùng file, chế độ `--hardened` | Parameterized query, escape output, session đúng chuẩn, rate limit, timeout, limit_conn |
+| 🔴 **Lab web có 15 lỗ hổng chủ đích** | `src/lab/app.js` | SQLi, XSS (reflected + stored), IDOR, Path Traversal, Command Injection, CSRF, JWT yếu, Open Redirect, Unrestricted Upload, XXE (mô phỏng trên VFS), directory listing, thiếu headers/rate limit/authz — kiểu DVWA/Juice Shop thu nhỏ |
+| 🏆 **Chế độ CTF** | `challenge` + `/_lab/challenges` | **7 thử thách 170 điểm**, cờ `FLAG{...}` sinh ngẫu nhiên THEO PHIÊN lab — tự khai thác để lấy, server xác minh bằng timing-safe compare; hardened từ chối nhận cờ |
+| 🕵️ **Blue-team detect** | `detect` + `/_lab/log` | phân tích log request: SQLi/XSS/traversal/cmdinj/XXE/open-redirect/upload/JWT-probe/brute-force/dò admin/scanner — mỗi phát hiện kèm biện pháp phòng thủ |
+| 🔐 **Codec — bộ mã hoá nền tảng** | `codec` | b64/hex/url/rot13/hash, mỗi kết quả kèm bài học |
+| 🎫 **Công cụ JWT** | `jwt` + `src/modules/jwttool.js` | decode/forge/verify/crack token — crack HS256 bằng từ điển, forge alg=none (chạy cục bộ, không mạng) |
+| 🟢 **Bản đã vá (hardened) để so sánh** | cùng file, chế độ `--hardened` | Parameterized query, escape output, execFile + whitelist, CSRF token, JWT verify chặt, rate limit, timeout, limit_conn |
 | 🔍 **Recon** | `src/modules/recon.js` | Headers, fingerprint, port scan (cục bộ), robots.txt |
-| 🧪 **Quét lỗ hổng** | `src/modules/vulnscan.js` | 7 nhóm check, mỗi finding kèm bằng chứng + cách vá |
+| 🧪 **Quét lỗ hổng** | `src/modules/vulnscan.js` | **14 nhóm check** (thêm CMDI/CSRF/JWT/OpenRedirect/Upload/XXE/StoredXSS), mỗi finding kèm bằng chứng + cách vá |
 | 🌊 **Mô phỏng tải (HTTP flood)** | `src/modules/loadtest.js` | pacing theo rps, đo p50–p99, thống kê 429 — chỉ trên lab |
 | 🚶 **Flow test (luồng người dùng thật)** | `src/modules/flowload.js` | chuỗi bước trang chủ → tìm kiếm → chi tiết, think-time + ramp-up, N virtual user, đo p95 TỪNG BƯỚC — chỉ trên lab |
-| 🕷 **Polite scraper (cào web công khai)** | `src/modules/scraper.js` | tôn trọng robots.txt + crawl-delay, rate-limit, chỉ cùng-origin; trích title/heading/link; đo latency — module DUY NHẤT cho phép web public |
+| 🕷 **Polite scraper (cào web công khai)** | `src/modules/scraper.js` | tôn trọng robots.txt + crawl-delay, rate-limit, chỉ cùng-origin — module DUY NHẤT cho phép web public |
 | 🐌 **Mô phỏng slowloris** | `src/modules/slowloris.js` | kết nối "nửa request", đo server có cắt không |
-| 🛡 **Module phòng thủ** | `src/defense/` | Token-bucket rate limiter + security headers |
+| 🛡 **Module phòng thủ** | `src/defense/` | Token-bucket rate limiter + security headers + CSRF token (synchronizer) |
 | 📄 **Báo cáo** | `src/modules/report.js` | Xuất `.md` + `.html` vào `reports/` (crawl xuất `.md` + `.json`) |
-| 📚 **Tài liệu & 8 bài thực hành** | `docs/`, `exercises/` | Pháp lý → kiến trúc → DoS/DDoS → cheat sheet → scraping lịch sự → E2E tự kiểm thử → bài tập có tiêu chí hoàn thành |
-| ✅ **71 unit/integration tests** | `tests/` | Bao gồm test GUARD chặn mục tiêu public + test scraper/flowload + unit-gaps (hub, db safe, report, robots) |
+| 📚 **Tài liệu & 13 bài thực hành** | `docs/`, `exercises/` | Pháp lý → kiến trúc → DoS/DDoS → cheat sheet → scraping → E2E → **bản đồ OWASP Top 10** → bài tập có tiêu chí hoàn thành |
+| ✅ **115 unit/integration tests** | `tests/` | Bao gồm test GUARD chặn public + test đối chứng 15 lỗ hổng vuln/hardened |
 | ⚙️ **CI workflow** | `.github/workflows/ci.yml` | GitHub Actions chạy test trên Node 22/24, Ubuntu + Windows |
 
 Không có dependency ngoài nào — chỉ dùng thư viện chuẩn Node ≥ 22.5
@@ -33,8 +34,8 @@ Không có dependency ngoài nào — chỉ dùng thư viện chuẩn Node ≥ 2
 ## Bắt đầu trong 60 giây
 
 ```bash
-npm test                       # 71/71 pass (unit + integration)
-npm run e2e                    # 38/38 E2E HTTP — tự khởi động 3 server, tự đối chứng vuln/hardened
+npm test                       # 115/115 pass (unit + integration)
+npm run e2e                    # 54/54 E2E HTTP — tự khởi động 3 server, tự đối chứng vuln/hardened
 npm run serve                  # lab CỐ Ý DỄ TỔN THƯƠNG → http://127.0.0.1:3000
 ```
 
@@ -61,7 +62,15 @@ npm run serve:hardened -- --port 3001
 node src/cli.js scan http://127.0.0.1:3001      # High 0 · Medium 0
 ```
 
-Lộ trình học đầy đủ: `node src/cli.js labs` (8 bài trong `exercises/`).
+Lộ trình học đầy đủ: `node src/cli.js labs` (13 bài trong `exercises/`).
+
+Đồ chơi JWT (bài LAB-11 — hoạt động cục bộ, không cần mạng):
+
+```bash
+node src/cli.js jwt decode <token>
+node src/cli.js jwt crack  <token>                            # từ điển secret yếu
+node src/cli.js jwt forge --payload='{"sub":"ctfsvc"}' --alg=none
+```
 
 ## SecHub — Hub học an toàn thông tin
 
@@ -113,21 +122,22 @@ khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; t�
 │   ├── cli.js            # CLI chính
 │   ├── guard.js          # ⛔ lớp chặn ủy quyền (quan trọng nhất)
 │   ├── db.js             # SQLite thật + fallback, cặp hàm vuln/safe
-│   ├── lab/              # app.js (2 chế độ) + serve.js
-│   ├── modules/          # recon, vulnscan, loadtest, flowload, slowloris, scraper, report, http
-│   ├── defense/          # ratelimiter (token bucket), headers
+│   ├── lab/              # app.js (2 chế độ) + jwtx.js + serve.js
+│   ├── modules/          # recon, vulnscan, loadtest, flowload, slowloris, scraper, detect, challenge, codec, jwttool, report, http
+│   ├── defense/          # ratelimiter (token bucket), headers, csrf
 │   └── utils/color.js
-├── tests/                # 71 test: guard, ratelimiter, tích hợp app, scraper, flowload, unit-gaps
-├── docs/                 # pháp lý · kiến trúc · DoS/DDoS · cheat sheet · scraping lịch sự
-├── exercises/            # 8 bài thực hành có tiêu chí hoàn thành
+├── tests/                # 115 test + e2e.mjs 54 check
+├── docs/                 # pháp lý · kiến trúc · DoS/DDoS · cheat sheet · scraping · OWASP map
+├── exercises/            # 13 bài thực hành có tiêu chí hoàn thành
 ├── reports/              # output quét (gitignored)
 └── .github/workflows/ci.yml
 ```
 
 ## Kết quả đã được xác minh (chạy thật trên máy này)
 
-- `node --test` → **71/71 pass** (bao gồm "chặn mục tiêu public kể cả khi có cờ").
-- Scan bản vuln → High 4, Medium 3, báo cáo xuất ra `reports/`.
+- `node --test` → **115/115 pass** (bao gồm "chặn mục tiêu public kể cả khi có cờ" + test đối chứng 15 lỗ hổng).
+- `npm run e2e` → **54/54 PASS** — đối chứng cặp vuln/hardened cho cả LAB-09..15 mới.
+- Scan bản vuln → **High 10, Medium 4** (SQLi, XSS×2, IDOR, path nhạy cảm, CMDI, CSRF, JWT, Upload, XXE + headers/cookie/redirect/rate-limit), báo cáo xuất ra `reports/`.
 - Scan bản hardened → **High 0, Medium 0**.
 - Loadtest `/slow` 40 rps: vuln ≈13 req/s với p95 ≈ 3000 ms; hardened ≈80% request
   nhận 429 nhưng p50 ≈ vài ms.
@@ -138,6 +148,7 @@ khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; t�
 - Slowloris 100 socket: vuln giữ 100/100; hardened cắt sớm 90, giữ 10, vẫn 200 cho
   request hợp lệ.
 - `recon http://8.8.8.8` → bị từ chối với thông điệp pháp lý.
+- CTF đầy đủ 7 cờ: cmdinj đọc được `SECLAB_CTF_CMD` qua env, JWT alg=none/secret123 forge được token `ctfsvc`, XXE đọc `flag-xxe.txt` từ VFS ảo.
 
 ## Lưu ý pháp lý & đạo đức (tóm tắt)
 
