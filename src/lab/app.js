@@ -11,11 +11,21 @@
 //   LAB-06 Thiếu rate limit    (so sánh với bản hardened)
 //   LAB-07 Thiếu kiểm soát truy cập /admin
 //   LAB-08 Verbose error page  (rò rỉ stack trace)
+//   LAB-09 Command Injection   /tools/ping?host=  (exec nối chuỗi — CTF #5)
+//   LAB-10 CSRF                POST /settings/email  (thiếu token chống CSRF)
+//   LAB-11 JWT yếu             POST /api/token , GET /api/profile  (secret123 + alg=none — CTF #6)
+//   LAB-12 Open Redirect       /redirect?to=
+//   LAB-13 Unrestricted Upload POST /upload + GET /uploads/:name (stored XSS qua file)
+//   LAB-14 XXE (mô phỏng)      POST /api/import  (entity → VFS ảo, an toàn tuyệt đối — CTF #7)
+//   LAB-15 Stored XSS          /guestbook  (comment render không escape)
 import http from 'node:http';
 import crypto from 'node:crypto';
+import { exec, execFile } from 'node:child_process';
 import { tokenBucketLimiter } from '../defense/ratelimiter.js';
 import { securityHeaders } from '../defense/headers.js';
+import { createCsrfSecret, issueCsrfToken, verifyCsrfToken } from '../defense/csrf.js';
 import { createLabDb } from '../db.js';
+import { jwtSign, jwtVerify } from './jwtx.js';
 
 // Hệ thống file ảo cho bài Path Traversal — KHÔNG đụng vào ổ đĩa thật.
 const VFS = {
@@ -54,6 +64,27 @@ const CHALLENGE_DEFS = [
     title: 'Broken Access Control — vào trang admin',
     points: 20,
     hint: 'Bản vuln không kiểm tra quyền ở /admin. Mở thẳng trang đó, cờ nằm ngay trong nội dung admin giả lập.',
+  },
+  {
+    id: 5,
+    flagKey: 'cmd',
+    title: 'Command Injection — đọc biến môi trường của server',
+    points: 25,
+    hint: "/tools/ping?host= nối chuỗi thẳng vào shell. Nối lệnh bằng & (Windows cmd) hoặc ; (Linux sh) sau host hợp lệ: `127.0.0.1 & set SECLAB` hoặc `127.0.0.1; env | grep SECLAB` — biến SECLAB_CTF_CMD chứa cờ. Bản hardened dùng execFile + whitelist ký tự nên không chêm được lệnh.",
+  },
+  {
+    id: 6,
+    flagKey: 'jwt',
+    title: 'JWT yếu — giả mạo token của service account',
+    points: 25,
+    hint: "POST /api/token (alice/alice123) để lấy JWT thật, decode bằng `node src/cli.js jwt decode <token>`. Bản vuln ký bằng secret yếu 'secret123' (crack bằng `jwt crack`) VÀ chấp nhận alg=none (`jwt forge --alg none`). Forge payload {\"sub\":\"ctfsvc\"} rồi GET /api/profile để lấy cờ.",
+  },
+  {
+    id: 7,
+    flagKey: 'xxe',
+    title: 'XXE — đọc file cờ qua XML external entity',
+    points: 20,
+    hint: 'POST /api/import nhận XML. Bản vuln xử lý <!ENTITY x SYSTEM "file://..."> trên filesystem ảo — thử file:///flag-xxe.txt rồi tham chiếu &x; trong <item>. Bản hardened từ chối DOCTYPE hoàn toàn.',
   },
 ];
 const TOTAL_POINTS = CHALLENGE_DEFS.reduce((s, c) => s + c.points, 0);
@@ -119,6 +150,22 @@ function parseForm(body) {
   return out;
 }
 
+// Parser multipart/form-data TỐI GIẢN cho bài upload — chỉ lấy part đầu có filename.
+// (Parser thật phức tạp hơn nhiều; bản tối giản đủ để minh hoạ Unrestricted Upload.)
+function parseMultipart(body, contentType) {
+  const m = /boundary=([^;]+)/.exec(contentType || '');
+  if (!m) return null;
+  for (const part of String(body).split('--' + m[1])) {
+    const idx = part.indexOf('\r\n\r\n');
+    if (idx === -1) continue;
+    const head = part.slice(0, idx);
+    const content = part.slice(idx + 4).replace(/\r\n$/, '');
+    const fn = /filename="([^"]*)"/.exec(head);
+    if (fn) return { filename: fn[1], content };
+  }
+  return null;
+}
+
 const page = (title, body, mode) => `<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="color-scheme" content="dark"><title>${title} — SecLab [${mode.toUpperCase()}]</title>
 <style>:root{color-scheme:dark}html{background:#0b1220;color:#e2e8f0}
@@ -150,15 +197,32 @@ export async function createLabApp(opts = {}) {
   const randHex = (n) => crypto.randomBytes(n).toString('hex');
   const ctf = { enabled: !hardened, solved: new Set(), flags: {}, score: 0 };
   const vfs = { ...VFS }; // bản VFS per-instance (bản vuln thêm file cờ)
+
+  // JWT: bản vuln cố tình ký bằng SECRET YẾU trong từ điển (bài học brute-force
+  // khoá HMAC); bản hardened dùng khoá ngẫu nhiên 256-bit theo phiên.
+  const VULN_JWT_SECRET = 'secret123';
+  const jwtSecret = hardened ? randHex(32) : VULN_JWT_SECRET;
+  const csrfSecret = createCsrfSecret(); // khoá phát hành CSRF token (bản hardened)
+  const guestbook = []; // comment in-memory cho bài Stored XSS (cap 100)
+
   if (!hardened) {
     ctf.flags.sql = `FLAG{sqli-${randHex(6)}}`;
     ctf.flags.trav = `FLAG{trav-${randHex(6)}}`;
     ctf.flags.idor = `FLAG{idor-${randHex(6)}}`;
     ctf.flags.admin = `FLAG{admin-${randHex(6)}}`;
+    ctf.flags.cmd = `FLAG{cmd-${randHex(6)}}`;
+    ctf.flags.jwt = `FLAG{jwt-${randHex(6)}}`;
+    ctf.flags.xxe = `FLAG{xxe-${randHex(6)}}`;
+    // Cờ command-injection nằm trong BIẾN MÔI TRƯỜNG của tiến trình lab —
+    // chỉ đọc được bằng cách chêm lệnh vào /tools/ping (set / env).
+    process.env.SECLAB_CTF_CMD = ctf.flags.cmd;
     // Người dùng ẩn: tên không khớp mọi từ khoá bình thường, chỉ lộ khi dump 1=1.
     db.addUser({ id: 99, name: 'zz_ctf_hidden', password: randHex(8), role: 'user', email: ctf.flags.sql, apiKey: 'LAB-KEY-CTF-0099' });
     db.setApiKey(4, ctf.flags.idor);
     vfs['flag-ctf.txt'] = `${ctf.flags.trav}\nCờ CTF — file ở GỐC, ngoài thư mục files/ được phép; chỉ đọc được qua path traversal.`;
+    vfs['flag-xxe.txt'] = `${ctf.flags.xxe}\nCờ CTF — chỉ đọc được qua XXE entity file:///flag-xxe.txt trong POST /api/import.`;
+    // /etc/passwd giả lập cho bài XXE — cảm giác "đọc file hệ thống" mà không đụng đĩa thật.
+    vfs['etc/passwd'] = 'root:x:0:0:root:/root:/bin/bash\nalice:x:1000:1000::/home/alice:/bin/sh\nlab-svc:x:1001:1001::/nonexistent:/usr/sbin/nologin';
   }
 
   // Log request phục vụ bài blue-team (module detect) — chỉ trong bộ nhớ, cap 500.
@@ -169,7 +233,7 @@ export async function createLabApp(opts = {}) {
     const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const path = u.pathname.replace(/\/+$/, '') || '/';
     metrics.byPath[path] = (metrics.byPath[path] || 0) + 1;
-    reqLog.push({ t: Date.now(), method: req.method, path: u.pathname + u.search, ua: req.headers['user-agent'] || '' });
+    reqLog.push({ t: Date.now(), method: req.method, path: u.pathname + u.search, ua: req.headers['user-agent'] || '', ip: req.socket.remoteAddress || '' });
     if (reqLog.length > 500) reqLog.shift();
 
     try {
@@ -246,10 +310,17 @@ export async function createLabApp(opts = {}) {
     // ---------- trang chủ ----------
     if (path === '/' && req.method === 'GET') {
       const items = [
-        '<li><a href="/search?q=alice">/search?q=... — tìm người dùng (SQLi)</a></li>',
+        '<li><a href="/search?q=alice">/search?q=... — tìm người dùng (SQLi + XSS)</a></li>',
         '<li><a href="/login">/login — đăng nhập (SQLi bypass)</a></li>',
         '<li><a href="/api/users/2">/api/users/:id — dữ liệu người dùng (IDOR)</a></li>',
         '<li><a href="/download?name=readme.txt">/download?name=... — tải file (Path Traversal)</a></li>',
+        '<li><a href="/tools/ping?host=127.0.0.1">/tools/ping?host= — chẩn đoán mạng (Command Injection)</a></li>',
+        '<li><a href="/settings">/settings — đổi email (CSRF)</a></li>',
+        '<li><a href="/guestbook">/guestbook — sổ lưu niệm (Stored XSS)</a></li>',
+        '<li><a href="/upload">/upload — tải file lên (Unrestricted Upload)</a></li>',
+        '<li><a href="/redirect?to=/">/redirect?to= — chuyển hướng (Open Redirect)</a></li>',
+        '<li>POST /api/token → JWT · GET /api/profile — xác thực token (JWT yếu)</li>',
+        '<li>POST /api/import — nhập XML (XXE mô phỏng trên filesystem ảo)</li>',
         '<li><a href="/slow">/slow — endpoint chậm 3s (demo tải)</a></li>',
         '<li><a href="/_lab/metrics">/_lab/metrics — bộ đếm request của lab</a></li>',
       ].join('\n');
@@ -371,6 +442,235 @@ export async function createLabApp(opts = {}) {
         ? '<p>Danh sách người dùng, cài đặt hệ thống… (nội dung admin nhạy cảm giả lập)</p>'
         : `<p>Danh sách người dùng, cài đặt hệ thống… (nội dung admin nhạy cảm giả lập)</p><p>Mã kích hoạt nội bộ: <code>${ctf.flags.admin}</code></p>`;
       return html(res, 200, page('Bảng điều khiển Admin', adminBody, hardened ? 'hardened' : 'vuln'));
+    }
+
+    // ---------- /tools/ping (Command Injection — LAB-09) ----------
+    if (path === '/tools/ping' && req.method === 'GET') {
+      const host = String(q.get('host') || '127.0.0.1').slice(0, 200);
+      const countFlag = process.platform === 'win32' ? '-n' : '-c';
+      const render = (out) =>
+        html(
+          res,
+          200,
+          page(
+            'Ping chẩn đoán',
+            `<form><input name="host" value="${esc(host)}" size="40"><button>Ping</button></form><pre>${esc(out)}</pre>` +
+              (hardened
+                ? ''
+                : '<p>Gợi ý lab: <code>127.0.0.1 &amp; whoami</code> (Windows) · <code>127.0.0.1; id</code> (Linux)</p>'),
+            hardened ? 'hardened' : 'vuln'
+          )
+        );
+      if (hardened) {
+        // Đã vá: whitelist ký tự + execFile (không qua shell → không có injection).
+        if (!/^[a-zA-Z0-9.-]{1,64}$/.test(host)) {
+          return json(res, 400, { error: 'invalid_host', message: 'Host chỉ được chứa [a-zA-Z0-9.-].' });
+        }
+        return execFile('ping', [countFlag, '2', host], { timeout: 6000, windowsHide: true }, (err, stdout, stderr) =>
+          render(String(stdout || '') + String(stderr || err || ''))
+        );
+      }
+      // ⚠ CHỦ ĐÍCH DỄ TỔN THƯƠNG: nối chuỗi input vào lệnh shell.
+      exec(`ping ${countFlag} 2 ${host}`, { timeout: 8000, windowsHide: true, maxBuffer: 256 * 1024 }, (err, stdout, stderr) =>
+        render(String(stdout || '') + String(stderr || '') + (err && !stderr ? `\n[exit ${err.code ?? err.message}]` : ''))
+      );
+      return;
+    }
+
+    // ---------- /settings + POST /settings/email (CSRF — LAB-10) ----------
+    if (path === '/settings' && req.method === 'GET') {
+      if (!session) {
+        return html(res, 200, page('Cài đặt', '<p>Bạn cần <a href="/login">đăng nhập</a> trước.</p>', hardened ? 'hardened' : 'vuln'));
+      }
+      const csrfField = hardened ? `<input type="hidden" name="csrf" value="${issueCsrfToken(csrfSecret, cookies.session)}">` : '';
+      return html(
+        res,
+        200,
+        page(
+          'Cài đặt tài khoản',
+          `<p>Email hiện tại: <b>${esc(session.email || '(chưa đặt)')}</b></p>
+           <form method="POST" action="/settings/email">${csrfField}
+             <label>Email mới <input name="email" value="attacker@evil.example"></label>
+             <button>Đổi email</button></form>
+           <p>Một trang độc hại có thể auto-submit form POST tới endpoint này — trình duyệt TỰ đính kèm
+              cookie phiên của nạn nhân. Đó là CSRF.</p>`,
+          hardened ? 'hardened' : 'vuln'
+        )
+      );
+    }
+    if (path === '/settings/email' && req.method === 'POST') {
+      if (!session) return json(res, 401, { error: 'unauthorized', message: 'Cần đăng nhập.' });
+      const body = parseForm(await readBody(req, hardened ? 8 * 1024 : vulnModeNoLimit()));
+      if (hardened) {
+        // Đã vá: kiểm Origin (nếu trình duyệt gửi) + bắt buộc CSRF token khớp session.
+        const origin = String(req.headers.origin || '');
+        if (origin && !origin.startsWith(`http://${req.headers.host}`)) {
+          return json(res, 403, { error: 'bad_origin', message: 'Origin không khớp host — nghi CSRF.' });
+        }
+        if (!verifyCsrfToken(csrfSecret, cookies.session, body.csrf)) {
+          return json(res, 403, { error: 'csrf_failed', message: 'Thiếu hoặc sai CSRF token.' });
+        }
+      }
+      session.email = String(body.email || '').slice(0, 120);
+      const note = hardened
+        ? '✅ Request có CSRF token hợp lệ và Origin đúng.'
+        : '⚠ Request được chấp nhận MÀ KHÔNG cần token — trang web khác hoàn toàn có thể đổi email của bạn!';
+      return html(res, 200, page('Đã đổi email', `<p>Email mới: <b>${esc(session.email)}</b></p><p>${note}</p>`, hardened ? 'hardened' : 'vuln'));
+    }
+
+    // ---------- JWT lab (LAB-11): POST /api/token + GET /api/profile ----------
+    if (path === '/api/token' && req.method === 'POST') {
+      const body = parseForm(await readBody(req, hardened ? 8 * 1024 : vulnModeNoLimit()));
+      // loginSafe cho CẢ hai bản — bài học ở đây là TOKEN, không phải SQLi.
+      const result = db.loginSafe(body.username, body.password);
+      if (!result.ok) return json(res, 401, { error: 'bad_credentials' });
+      const now = Math.floor(Date.now() / 1000);
+      const token = jwtSign({ sub: result.user.name, role: result.user.role, iat: now, exp: now + 3600 }, jwtSecret);
+      return json(res, 200, {
+        token,
+        huong_dan: 'GET /api/profile?token=<jwt> hoặc header: Authorization: Bearer <jwt>',
+        ...(hardened ? {} : { ghi_chu_lab: "Bản vuln ký bằng secret yếu trong từ điển — thử: node src/cli.js jwt crack <token>" }),
+      });
+    }
+    if (path === '/api/profile' && req.method === 'GET') {
+      const authz = String(req.headers.authorization || '');
+      const token = authz.startsWith('Bearer ') ? authz.slice(7).trim() : String(q.get('token') || '');
+      const v = jwtVerify(token, jwtSecret, { allowNone: !hardened, checkExp: hardened });
+      if (!v.ok) return json(res, 401, { error: 'invalid_token', reason: v.error });
+      const out = { profile: { user: v.payload.sub, role: v.payload.role || 'user' } };
+      // 'ctfsvc' là service account nội bộ — không ai đăng nhập được (chỉ có được
+      // qua GIẢ MẠO token), nên cờ ở đây chứng minh được bạn đã forge JWT.
+      if (!hardened && v.payload.sub === 'ctfsvc') out.flag = ctf.flags.jwt;
+      return json(res, 200, out);
+    }
+
+    // ---------- /redirect (Open Redirect — LAB-12) ----------
+    if (path === '/redirect' && req.method === 'GET') {
+      const to = String(q.get('to') || '/');
+      // Đã vá: chỉ cho phép path nội bộ bắt đầu bằng "/" (không phải "//" protocol-relative, không chứa backslash).
+      if (hardened && (!to.startsWith('/') || to.startsWith('//') || to.includes('\\'))) {
+        return json(res, 400, { error: 'invalid_target', message: 'Chỉ cho phép chuyển hướng tới path nội bộ.' });
+      }
+      res.statusCode = 302;
+      res.setHeader('Location', to);
+      return res.end();
+    }
+
+    // ---------- /upload + /uploads/:name (Unrestricted Upload — LAB-13) ----------
+    if (path === '/upload' && req.method === 'GET') {
+      return html(
+        res,
+        200,
+        page(
+          'Tải file lên',
+          `<form method="POST" action="/upload" enctype="multipart/form-data"><input type="file" name="file"><button>Tải lên</button></form>
+           <p>Hoặc urlencoded: <code>POST /upload</code> với field <code>name</code> + <code>content</code>.</p>
+           <p>File được phục vụ lại tại <code>/uploads/&lt;tên&gt;</code>${
+             hardened
+               ? ' — whitelist đuôi file + ép Content-Type text/plain.'
+               : ' — <b>không kiểm tra đuôi file</b>, .html được trả về text/html (stored XSS qua upload).'
+           }</p>`,
+          hardened ? 'hardened' : 'vuln'
+        )
+      );
+    }
+    if (path === '/upload' && req.method === 'POST') {
+      const raw = await readBody(req, hardened ? 512 * 1024 : vulnModeNoLimit());
+      const ct = String(req.headers['content-type'] || '');
+      let name = '';
+      let content = '';
+      if (ct.includes('multipart/form-data')) {
+        const m = parseMultipart(raw, ct);
+        if (m) ({ filename: name, content } = m);
+      } else {
+        const f = parseForm(raw);
+        name = f.name || '';
+        content = f.content || '';
+      }
+      const base = String(name).split(/[\\/]/).pop().slice(0, 80);
+      if (!base) return json(res, 400, { error: 'missing_file' });
+      if (hardened) {
+        // Đã vá: whitelist extension + tên file sanitize.
+        const ALLOWED_EXT = ['.txt', '.md', '.csv', '.png', '.jpg', '.jpeg', '.pdf'];
+        const ext = base.includes('.') ? base.slice(base.lastIndexOf('.')).toLowerCase() : '';
+        if (!ALLOWED_EXT.includes(ext)) {
+          return json(res, 415, { error: 'bad_file_type', message: `Chỉ cho phép: ${ALLOWED_EXT.join(', ')}`, ext });
+        }
+      }
+      const safe = base.replace(/[^a-zA-Z0-9._-]/g, '_');
+      vfs[`files/uploads/${safe}`] = String(content).slice(0, 256 * 1024);
+      return html(
+        res,
+        200,
+        page('Đã tải lên', `<p>Đã lưu <code>${esc(safe)}</code> (${content.length} bytes) → <a href="/uploads/${encodeURIComponent(safe)}">/uploads/${esc(safe)}</a></p>`, hardened ? 'hardened' : 'vuln')
+      );
+    }
+    const um = path.match(/^\/uploads\/([^/]+)$/);
+    if (um && req.method === 'GET') {
+      const key = `files/uploads/${decodeURIComponent(um[1])}`;
+      const content = vfs[key];
+      if (content === undefined) return json(res, 404, { error: 'not_found' });
+      const ext = key.includes('.') ? key.slice(key.lastIndexOf('.')).toLowerCase() : '';
+      const MIME = {
+        '.html': 'text/html; charset=utf-8',
+        '.htm': 'text/html; charset=utf-8',
+        '.svg': 'image/svg+xml',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.pdf': 'application/pdf',
+      };
+      // Bản vuln phục vụ theo đúng MIME của file → file .html upload lên CHẠY ĐƯỢC
+      // script (stored XSS qua upload). Bản hardened ép text/plain cho mọi file.
+      return send(res, 200, content, { 'Content-Type': hardened ? 'text/plain; charset=utf-8' : MIME[ext] || 'text/plain; charset=utf-8' });
+    }
+
+    // ---------- /api/import (XXE mô phỏng trên VFS — LAB-14) ----------
+    if (path === '/api/import' && req.method === 'POST') {
+      const xml = await readBody(req, hardened ? 64 * 1024 : 1024 * 1024);
+      // Đã vá: parser từ chối DTD hoàn toàn — chống XXE ở gốc.
+      if (hardened && /<!DOCTYPE|<!ENTITY/i.test(xml)) {
+        return json(res, 400, { error: 'dtd_prohibited', message: 'XML parser từ chối DOCTYPE/ENTITY — cấu hình chống XXE.' });
+      }
+      // Bản vuln: "parser" nghiệp dân resolve <!ENTITY x SYSTEM "file://...">
+      // bằng cách tra VFS ảo — mô phỏng XXE mà không đụng đĩa thật.
+      const entities = {};
+      if (!hardened) {
+        for (const m of xml.matchAll(/<!ENTITY\s+([^\s]+)\s+SYSTEM\s+"file:\/\/([^"]+)"\s*>/gi)) {
+          const key = m[2].replace(/^\/+/, '');
+          entities[m[1]] = vfs[key] ?? `[file không tồn tại: ${key}]`;
+        }
+      }
+      const resolved = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map((m) =>
+        m[1].replace(/&([A-Za-z0-9_-]+);/g, (s, n) => entities[n] ?? s)
+      );
+      return json(res, 200, { imported: resolved.length, items: resolved });
+    }
+
+    // ---------- /guestbook (Stored XSS — LAB-15) ----------
+    if (path === '/guestbook' && req.method === 'GET') {
+      const list =
+        guestbook
+          .map((g) => `<li><b>${hardened ? esc(g.who) : g.who}</b>: ${hardened ? esc(g.msg) : g.msg} <i>(${g.t})</i></li>`)
+          .join('') || '<li><i>chưa có lời nhắn</i></li>';
+      return html(
+        res,
+        200,
+        page(
+          'Sổ lưu niệm',
+          `<ul>${list}</ul><form method="POST" action="/guestbook"><input name="msg" placeholder="Lời nhắn của bạn" size="50"><button>Gửi</button></form>` +
+            (hardened ? '' : '<p>Gợi ý lab: lời nhắn được render KHÔNG escape — thử <code>&lt;svg/onload=alert(1)&gt;</code></p>'),
+          hardened ? 'hardened' : 'vuln'
+        )
+      );
+    }
+    if (path === '/guestbook' && req.method === 'POST') {
+      const body = parseForm(await readBody(req, hardened ? 8 * 1024 : vulnModeNoLimit()));
+      if (guestbook.length >= 100) guestbook.shift();
+      guestbook.push({ who: session?.name || 'guest', msg: String(body.msg || '').slice(0, 500), t: new Date().toISOString().slice(11, 19) });
+      res.statusCode = 303; // POST → redirect về GET (PRG pattern)
+      res.setHeader('Location', '/guestbook');
+      return res.end();
     }
 
     // ---------- /_lab/metrics ----------
