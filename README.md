@@ -32,7 +32,7 @@
 | 📄 **Báo cáo** | `src/modules/report.js` | Xuất `.md` + `.html` vào `reports/` (crawl xuất `.md` + `.json`) |
 | 📚 **Tài liệu & 13 bài thực hành** | `docs/`, `exercises/` | Pháp lý → kiến trúc → DoS/DDoS → cheat sheet → scraping → E2E → **bản đồ OWASP Top 10** → bài tập có tiêu chí hoàn thành |
 | ✅ **115 unit/integration tests** | `tests/` | Bao gồm test GUARD chặn public + test đối chứng 15 lỗ hổng vuln/hardened |
-| ⚙️ **CI workflow** | `.github/workflows/ci.yml` | GitHub Actions chạy test trên Node 22/24, Ubuntu + Windows |
+| ⚙️ **CI workflow** | `.github/workflows/ci.yml` | GitHub Actions: unit + E2E trên Node 22/24 × Ubuntu + Windows |
 
 Không có dependency ngoài nào — chỉ dùng thư viện chuẩn Node ≥ 22.5
 (bao gồm `node:sqlite`).
@@ -69,6 +69,8 @@ node src/cli.js scan http://127.0.0.1:3001      # High 0 · Medium 0
 ```
 
 Lộ trình học đầy đủ: `node src/cli.js labs` (13 bài trong `exercises/`).
+Người đứng lớp đọc thêm [docs/09-huong-dan-giang-day.md](docs/09-huong-dan-giang-day.md)
+— giáo án 6 buổi, kịch bản demo, lỗi thường gặp, gợi ý chấm điểm.
 
 Đồ chơi JWT (bài LAB-11 — hoạt động cục bộ, không cần mạng):
 
@@ -78,17 +80,28 @@ node src/cli.js jwt crack  <token>                            # từ điển sec
 node src/cli.js jwt forge --payload='{"sub":"ctfsvc"}' --alg=none
 ```
 
+## Hình ảnh thực tế
+
+| Lab `vuln` — 15 endpoint lỗ hổng chủ đích | Khai thác SQLi `' OR 1=1 --` trả về toàn bảng |
+|---|---|
+| ![Lab vuln — trang chủ liệt kê 15 endpoint](docs/images/lab-home-vuln.png) | ![SQLi bypass trên bản vuln](docs/images/sqli-search-vuln.png) |
+
+| SecHub — giáo trình 9 chuyên mục | Chuyên mục OWASP map đủ 15 lab |
+|---|---|
+| ![SecHub — hub học ATTT](docs/images/sechub-home.png) | ![SecHub — chuyên mục OWASP](docs/images/sechub-owasp15.png) |
+
 ## SecHub — Hub học an toàn thông tin
 
-Trang tổng hợp **8 chuyên mục học tập** (tổng quan ATTT · DDoS · malware · xâm nhập
-web OWASP · xác thực & mã hóa · mạng & giao thức · pháp lý Việt Nam · lộ trình 12 tháng)
-kèm mục lục tự sinh, giao diện tối, gắn trực tiếp với lab và lệnh của SecLab:
+Trang tổng hợp **9 chuyên mục học tập** (tổng quan ATTT · DDoS · malware · xâm nhập
+web OWASP · xác thực & mã hóa · mạng & giao thức · pháp lý Việt Nam · lộ trình 12 tháng
+· cheat sheet) kèm mục lục tự sinh, giao diện tối, gắn trực tiếp với lab và lệnh
+của SecLab:
 
 ```bash
 node src/cli.js hub            # mở http://127.0.0.1:4000 (chỉ truy cập được từ máy này)
 ```
 
-Nội dung nằm trong `hub/` (shell + 8 section HTML + bản ghép `hub/index.html` đọc
+Nội dung nằm trong `hub/` (shell + 9 section HTML + bản ghép `hub/index.html` đọc
 được cả khi mở trực tiếp file). Server tĩnh có chống path-traversal (đã test 403).
 Sửa một chuyên mục xong, ghép lại bằng: `node scripts/assemble-hub.js`.
 
@@ -97,7 +110,7 @@ khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; t�
 287/288 thống nhất; tham chiếu chéo sai; lệnh thiếu cờ; thuật ngữ chưa giải thích)
 đã được xử lý toàn bộ trước khi ghép.
 
-## Đã kiểm chứng bằng trình duyệt thật (browser-use)
+## Đã kiểm chứng bằng trình duyệt thật (Playwright + browser-use)
 
 - Trang lab render đúng, click/link/textbox hoạt động thật; thử payload SQLi
   `' OR 1=1 --` trên **bản hardened qua trình duyệt** → trả 0 dòng dữ liệu.
@@ -133,7 +146,7 @@ khung hình phạt Điều 287 "12–15 năm" → sửa đúng "7–12 năm"; t�
 │   ├── defense/          # ratelimiter (token bucket), headers, csrf
 │   └── utils/color.js
 ├── tests/                # 115 test + e2e.mjs 54 check
-├── docs/                 # pháp lý · kiến trúc · DoS/DDoS · cheat sheet · scraping · OWASP map
+├── docs/                 # pháp lý · kiến trúc · DoS/DDoS · cheat sheet · scraping · OWASP map · instructor guide · images/
 ├── exercises/            # 13 bài thực hành có tiêu chí hoàn thành
 ├── reports/              # output quét (gitignored)
 └── .github/workflows/ci.yml
