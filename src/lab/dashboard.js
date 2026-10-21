@@ -445,6 +445,11 @@ kbd{background:#1e293b;border:1px solid #334155;border-bottom-width:2px;border-r
 .alink a{color:var(--ac);font-weight:700;margin-right:.4rem}
 .bcard:target{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac),0 0 22px -6px var(--ac)}
 .filters .ftoggle,.sub .ftoggle{margin-left:.3rem;padding:.2rem .6rem;font-size:.78rem;cursor:pointer}
+/* accessibility: tôn trọng prefers-reduced-motion */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
 /* phản hồi bấm cho mọi nút */
 .fbtn:active,.chipbtn:active,.submit button:active,.cp:active,.ftoggle:active,.navtab:active{transform:scale(.94)}
 .filters button,.chip,.fbtn,.navtab{transition:all .15s}
