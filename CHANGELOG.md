@@ -36,6 +36,11 @@ theo [Semantic Versioning](https://semver.org/lang/vi/).
 - Blue feed: timestamp `Date.now()` (numeric epoch) làm client crash vì gọi
   `.slice` trên số — formatter mới xử lý cả epoch số lẫn chuỗi ISO.
 - Nút copy payload: thêm fallback `execCommand` khi Clipboard API bị chặn.
+- **Mọi phần tử trông-như-nút giờ đều bấm được**: chip nhóm trên card áp
+  filter nhóm, sao độ khó áp filter độ khó, chip `🏆 CTF #n` cuộn mượt tới
+  panel + điền sẵn ID + focus ô cờ, đường dẫn bài tập link tới file trên
+  GitHub, endpoint POST có nút ⧉ copy lệnh `curl -X POST <origin>`,
+  LAB-id trên Blue cards link ngược `/lab#lab-xx`.
 - Favicon inline cho `/lab` + `/blue` (diệt 404 console).
 - `/lab` redesign sang theme Red Team (đỏ/cam, nhóm theo màu kỹ năng) tách
   biệt với Blue Team (cyan); giữ nguyên lọc, tiến độ, CTF panel.
