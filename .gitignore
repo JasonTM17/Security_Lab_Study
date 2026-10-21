@@ -1,0 +1,10 @@
+node_modules/
+reports/
+*.log
+.env
+.env.local
+dist/
+.mimosa/
+.video_agent/
+
+.zcode/

@@ -1,0 +1,29 @@
+{
+  "name": "seclab",
+  "version": "1.0.0",
+  "description": "SecLab - Bộ công cụ học an toàn thông tin: lab web có lỗ hổng chủ đích, recon, quét lỗ hổng, mô phỏng DoS/load-test trên lab cục bộ và module phòng thủ. CHỈ dùng cho mục tiêu bạn sở hữu hoặc được phép.",
+  "type": "module",
+  "main": "src/cli.js",
+  "bin": {
+    "seclab": "src/cli.js"
+  },
+  "scripts": {
+    "serve": "node src/cli.js serve",
+    "serve:hardened": "node src/cli.js serve --hardened",
+    "hub": "node src/cli.js hub",
+    "e2e": "node tests/e2e.mjs",
+    "doctor": "node src/cli.js doctor",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "keywords": [
+    "security",
+    "education",
+    "lab",
+    "vulnerability-scanner",
+    "rate-limiting"
+  ],
+  "license": "MIT"
+}
