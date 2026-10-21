@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createLabApp } from '../src/lab/app.js';
-import { LABS, CATEGORIES, renderDashboard, renderCatalog } from '../src/lab/dashboard.js';
+import { LABS, CATEGORIES, CAT_META, LAB_DETECT, renderDashboard, renderBlueDashboard, renderCatalog } from '../src/lab/dashboard.js';
 
 const box = {};
 before(async () => {
@@ -18,11 +18,12 @@ after(() => {
   box.server.closeAllConnections?.();
 });
 
-test('GET /lab → 200, đủ 20 thẻ bài + badge vuln', async () => {
+test('GET /lab → 200, Red Team theme + đủ 20 thẻ bài', async () => {
   const res = await fetch(box.url + '/lab');
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.match(html, /Chọn bài LAB/);
+  assert.match(html, /Red Team/);
+  assert.match(html, /Chọn mục tiêu/);
   assert.match(html, /LAB VULN/);
   assert.equal((html.match(/data-cat=/g) || []).length, 20);
   assert.ok(html.includes('LAB-01') && html.includes('LAB-20'));
@@ -67,4 +68,52 @@ test('renderCatalog: bảng tĩnh đủ 20 dòng + 6 nhóm cho hub', () => {
   const html = renderCatalog();
   assert.equal((html.match(/LAB-\d{2}/g) || []).length, 20);
   assert.equal((html.match(/<h3>/g) || []).length, 6);
+});
+
+// ---------- Blue Team SOC console ----------
+
+test('GET /blue → 200, SOC console cyan + đủ 3 khối (feed/rule/defense)', async () => {
+  const res = await fetch(box.url + '/blue');
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /SOC Console/);
+  assert.match(html, /LAB VULN/);
+  assert.ok(html.includes('feed') && html.includes('alert') && html.includes('rule'));
+});
+
+test('GET /_lab/alerts → phân tích request log, tìm attack pattern', async () => {
+  // Tạo traffic tấn công trước
+  await fetch(box.url + "/search?q='%20OR%201=1%20--");
+  await fetch(box.url + '/admin');
+  const res = await fetch(box.url + '/_lab/alerts');
+  assert.equal(res.status, 200);
+  const j = await res.json();
+  assert.equal(j.mode, 'vuln');
+  assert.ok(Array.isArray(j.findings));
+  assert.ok(Array.isArray(j.rules));
+  const types = j.findings.map((f) => f.type);
+  assert.ok(types.includes('sqli'), `thiếu sqli trong: ${types}`);
+  assert.ok(types.includes('admin-probe'), `thiếu admin-probe trong: ${types}`);
+});
+
+test('/_lab/log: ghi status sau khi response xong (0=in-flight)', async () => {
+  await fetch(box.url + '/status-check-404');
+  await new Promise((r) => setTimeout(r, 50)); // chờ res.finish
+  const j = await (await fetch(box.url + '/_lab/log')).json();
+  const e = j.log.find((x) => x.path === '/status-check-404');
+  assert.equal(e.status, 404);
+});
+
+test('renderBlueDashboard: hardened mode + rules render, timestamp helper có mặt', () => {
+  const html = renderBlueDashboard('hardened', [{ type: 'sqli', label: 'SQLi', severity: 'high' }]);
+  assert.match(html, /LAB HARDENED/);
+  assert.ok(html.includes('typeof e.t'), 'client phải xử lý timestamp numeric');
+  assert.ok(html.includes('sqli'));
+});
+
+test('LAB_DETECT: mỗi bài lab có defense map cho blue team', () => {
+  for (const l of LABS) {
+    assert.ok(LAB_DETECT[l.id], `thiếu LAB_DETECT cho ${l.id}`);
+  }
+  assert.ok(Object.keys(CAT_META).length >= Object.keys(CATEGORIES).length);
 });

@@ -481,9 +481,9 @@ group('H. Lỗ hổng nâng cao (LAB-16..20) — đối chứng vuln/hardened');
 // ===========================================================================
 group('I. Dashboard /lab — catalog chọn bài');
 {
-  await check('I1. /lab vuln: 200, đủ 20 thẻ, có CTF panel', async () => {
+  await check('I1. /lab vuln: 200, Red Team theme + đủ 20 thẻ + CTF panel', async () => {
     const t = await (await get(vuln, '/lab')).text();
-    assert.match(t, /Chọn bài LAB/);
+    assert.match(t, /Red Team/);
     assert.equal((t.match(/data-cat=/g) || []).length, 20);
     assert.ok(t.includes('ctfsend') && t.includes('/_lab/challenges'));
   });
@@ -492,6 +492,28 @@ group('I. Dashboard /lab — catalog chọn bài');
     const t = await (await get(hard, '/lab')).text();
     assert.match(t, /LAB HARDENED/);
     assert.match(t, /đối chứng/);
+  });
+
+  await check('I3. /blue vuln: 200, SOC console + feed + rules', async () => {
+    const t = await (await get(vuln, '/blue')).text();
+    assert.match(t, /SOC Console/);
+    assert.ok(t.includes('/_lab/log') && t.includes('/_lab/alerts'));
+    assert.ok(t.includes('LAB-20')); // đủ 20 defensive cards
+  });
+
+  await check('I4. /_lab/alerts: phát hiện attack từ traffic e2e thật', async () => {
+    const j = await (await get(vuln, '/_lab/alerts')).json();
+    assert.equal(j.mode, 'vuln');
+    assert.ok(Array.isArray(j.findings) && j.findings.length > 0);
+    assert.ok(j.rules.length >= 16);
+    assert.ok(j.findings.some((f) => f.severity === 'high'), 'cần ≥1 alert high từ traffic tấn công');
+  });
+
+  await check('I5. /_lab/log: request ghi status sau khi xong', async () => {
+    const j = await (await get(vuln, '/_lab/log')).json();
+    const done = j.log.filter((e) => e.status > 0);
+    assert.ok(done.length > 5);
+    assert.ok(done.every((e) => e.status >= 200 && e.status < 600));
   });
 }
 
