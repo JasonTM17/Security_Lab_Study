@@ -117,7 +117,7 @@ const TOTAL_POINTS = CHALLENGE_DEFS.reduce((s, c) => s + c.points, 0);
 
 export { esc } from './html.js';
 import { esc } from './html.js';
-import { renderDashboard, renderBlueDashboard, DASH_CSS, RED_JS, BLUE_JS } from './dashboard.js';
+import { renderDashboard, renderBlueDashboard, DASH_CSS, RED_JS, BLUE_JS, NAV } from './dashboard.js';
 import { analyzeLog, RULES_INFO } from '../modules/detect.js';
 
 function send(res, status, body, headers = {}) {
@@ -221,17 +221,18 @@ function safeMerge(dst, src) {
   return dst;
 }
 
+// Trang lab cơ bản — dùng /_lab/dash.css (hardened CSP cấm inline <style>).
 const page = (title, body, mode) => `<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="color-scheme" content="dark"><title>${title} — SecLab [${mode.toUpperCase()}]</title>
-<style>:root{color-scheme:dark}html{background:#0b1220;color:#e2e8f0}
-body{font-family:system-ui,Segoe UI,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem}
-a{color:#4ade80}.mode{display:inline-block;padding:2px 10px;border-radius:12px;font-weight:700}
-.vuln{background:#450a0a;color:#fca5a5}.hardened{background:#052e16;color:#86efac}
-code,pre{background:#1e293b;color:#e2e8f0}pre{padding:12px;overflow:auto}</style></head>
-<body><span class="mode ${mode}">LAB ${mode.toUpperCase()}</span>
-<h1>${title}</h1>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E%E2%9A%94%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/_lab/dash.css"></head>
+<body class="pg">
+${NAV(mode, 'home')}
+<div class="wrap">
+<div class="hero"><h1>${title}</h1></div>
 ${body}
-<hr><p><a href="/">Trang chủ</a> · <a href="/lab"><b>🔴 Red Team</b></a> · <a href="/blue"><b>🔵 Blue Team</b></a> · <a href="/search?q=alice">/search</a> · <a href="/login">/login</a> · <a href="/api/users/2">/api/users/2</a> · <a href="/download?name=readme.txt">/download</a> · <a href="/slow">/slow</a> · <a href="/_lab/metrics">/_lab/metrics</a></p></body></html>`;
+<p class="sub foot"><a href="/search?q=alice">/search</a> · <a href="/login">/login</a> · <a href="/api/users/2">/api/users/2</a> · <a href="/download?name=readme.txt">/download</a> · <a href="/slow">/slow</a> · <a href="/_lab/metrics">/_lab/metrics</a></p>
+</div></body></html>`;
 
 /**
  * Tạo HTTP server của lab.
@@ -397,35 +398,43 @@ export async function createLabApp(opts = {}) {
 
     // ---------- trang chủ ----------
     if (path === '/' && req.method === 'GET') {
-      const items = [
-        '<li><a href="/search?q=alice">/search?q=... — tìm người dùng (SQLi + XSS)</a></li>',
-        '<li><a href="/login">/login — đăng nhập (SQLi bypass)</a></li>',
-        '<li><a href="/api/users/2">/api/users/:id — dữ liệu người dùng (IDOR)</a></li>',
-        '<li><a href="/download?name=readme.txt">/download?name=... — tải file (Path Traversal)</a></li>',
-        '<li><a href="/tools/ping?host=127.0.0.1">/tools/ping?host= — chẩn đoán mạng (Command Injection)</a></li>',
-        '<li><a href="/settings">/settings — đổi email (CSRF)</a></li>',
-        '<li><a href="/guestbook">/guestbook — sổ lưu niệm (Stored XSS)</a></li>',
-        '<li><a href="/upload">/upload — tải file lên (Unrestricted Upload)</a></li>',
-        '<li><a href="/redirect?to=/">/redirect?to= — chuyển hướng (Open Redirect)</a></li>',
-        '<li>POST /api/token → JWT · GET /api/profile — xác thực token (JWT yếu)</li>',
-        '<li>POST /api/import — nhập XML (XXE mô phỏng trên filesystem ảo)</li>',
-        '<li>POST /api/config — cập nhật cấu hình JSON (Prototype Pollution)</li>',
-        '<li>POST /api/register — đăng ký tài khoản (Mass Assignment)</li>',
-        '<li><a href="/track?code=AB-100">/track?code= — tra mã vận đơn (Blind SQLi)</a></li>',
-        '<li><a href="/api/reset/request?user=alice">/api/reset/* — quên mật khẩu (reset token yếu)</a></li>',
-        '<li><a href="/dom">/dom — trang hiển thị hash (DOM-based XSS)</a></li>',
-        '<li><a href="/slow">/slow — endpoint chậm 3s (demo tải)</a></li>',
-        '<li><a href="/lab"><b>/lab — 🔴 Red Team: chọn mục tiêu (20 bài, lọc &amp; theo tiến độ)</b></a></li>',
-        '<li><a href="/blue"><b>/blue — 🔵 Blue Team: SOC console, live feed &amp; alerts</b></a></li>',
-        '<li><a href="/_lab/metrics">/_lab/metrics — bộ đếm request của lab</a></li>',
-      ].join('\n');
+      const eps = [
+        ['/search?q=alice', '/search?q=…', 'tìm người dùng — SQLi + XSS'],
+        ['/login', '/login', 'đăng nhập — SQLi bypass'],
+        ['/api/users/2', '/api/users/:id', 'dữ liệu người dùng — IDOR'],
+        ['/download?name=readme.txt', '/download?name=…', 'tải file — Path Traversal'],
+        ['/tools/ping?host=127.0.0.1', '/tools/ping?host=', 'chẩn đoán mạng — Command Injection'],
+        ['/settings', '/settings', 'đổi email — CSRF'],
+        ['/guestbook', '/guestbook', 'sổ lưu niệm — Stored XSS'],
+        ['/upload', '/upload', 'tải file lên — Unrestricted Upload'],
+        ['/redirect?to=/', '/redirect?to=', 'chuyển hướng — Open Redirect'],
+        ['/track?code=AB-100', '/track?code=', 'tra mã vận đơn — Blind SQLi'],
+        ['/api/reset/request?user=alice', '/api/reset/*', 'quên mật khẩu — reset token yếu'],
+        ['/dom', '/dom', 'hiển thị hash — DOM-based XSS'],
+        ['/slow', '/slow', 'endpoint chậm 3s — demo tải'],
+        ['/_lab/metrics', '/_lab/metrics', 'bộ đếm request của lab'],
+      ];
+      const posts = [
+        ['/api/token → JWT · /api/profile', 'xác thực token — JWT yếu'],
+        ['/api/import', 'nhập XML — XXE (filesystem ảo)'],
+        ['/api/config', 'cập nhật JSON — Prototype Pollution'],
+        ['/api/register', 'đăng ký tài khoản — Mass Assignment'],
+      ];
+      const grid =
+        eps.map(([h, p, d]) => `<a class="hep" href="${h}"><code>${p}</code><br><small>${d}</small></a>`).join('') +
+        posts.map(([p, d]) => `<span class="hep2"><span class="hm">POST</span><code>${p}</code><br><small>${d}</small></span>`).join('');
       return html(
         res,
         200,
         page(
-          'Chào mừng đến SecLab',
-          `<p>Lab web <b>${hardened ? 'ĐÃ VÁ (hardened)' : 'CỐ Ý DỄ TỔN THƯƠNG (vuln)'}</b>. Dữ liệu 100% giả lập.</p><ul>${items}</ul>` +
-            (hardened ? '' : `<p>Thử: <code>/search?q=' OR 1=1 --</code></p>`),
+          'SecLab — lab web ' + (hardened ? 'đã vá' : 'cố ý dễ tổn thương'),
+          `<p class="sub">Dữ liệu 100% giả lập · <b>${hardened ? 'HARDENED — mọi payload phải BỊ CHẶN' : 'VULN — khai thác thoải mái'}</b></p>
+<div class="cta">
+  <a class="r" href="/lab">🔴 Red Team — chọn mục tiêu (20 bài)</a>
+  <a class="b" href="/blue">🔵 Blue Team — SOC console</a>
+</div>
+<div class="hgrid">${grid}</div>` +
+            (hardened ? '' : `<p class="sub">Thử ngay: <code>/search?q=' OR 1=1 --</code></p>`),
           hardened ? 'hardened' : 'vuln'
         )
       );

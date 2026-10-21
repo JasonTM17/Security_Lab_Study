@@ -1,12 +1,12 @@
 # 07 · Ma trận E2E tự kiểm thử — kết quả đã chạy thật
 
 > Hai tầng kiểm thử bổ trợ nhau:
-> **(1) `npm run e2e`** — 64 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
+> **(1) `npm run e2e`** — 65 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
 > **(2) Browser E2E qua browser-use** — chính trình duyệt thật (webview Chromium) thao tác như người dùng: click, điền form, cookie jar thật, chụp màn hình.
 
-Kết quả lần chạy gần nhất (2026-10-21): **E2E 64/64 PASS · Browser E2E 30/30 PASS**.
+Kết quả lần chạy gần nhất (2026-10-21): **E2E 65/65 PASS · Browser E2E 30/30 PASS**.
 
-## Tầng 1 — `npm run e2e` (64 check, tự chứa)
+## Tầng 1 — `npm run e2e` (65 check, tự chứa)
 
 | Nhóm | Số check | Phủ những gì |
 |---|---|---|
@@ -58,7 +58,7 @@ Ghi chú kỹ thuật: check A7 phải dùng **raw HTTP request** (`node:http`, 
 
 ```bash
 npm test        # 151 unit/integration
-npm run e2e     # 64 E2E HTTP (tự khởi động server, port tạm)
+npm run e2e     # 65 e2e HTTP (tự khởi động server, port tạm)
 node src/cli.js hub --port 4000   # rồi mở http://127.0.0.1:4000 xem hub
 node src/cli.js serve --hardened --port 3001  # lab để test tay trên trình duyệt
 ```

@@ -545,12 +545,46 @@ body.blue{--ac:#22d3ee;--ac2:#0ea5e9}
 @keyframes blink{50%{opacity:.3}}
 @keyframes ring{0%{box-shadow:0 0 0 0 rgba(74,222,128,.45)}70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
+/* ── trang lab cơ bản (body.pg, accent xanh lá) ── */
+body.pg{--ac:#4ade80;--ac2:#22d3ee}
+.pg .wrap{max-width:980px}
+.pg .hero{margin-top:1rem}
+.pg .hero h1{font-size:1.5rem}
+.pg code,.pg pre{background:#16203a;color:#e2e8f0;border-radius:6px}
+.pg pre{padding:12px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.pg input,.pg select,.pg textarea{background:#1e293b;border:1px solid #334155;color:var(--txt);
+  border-radius:8px;padding:.4rem .6rem;font:inherit}
+.pg button,.pg input[type=submit]{background:color-mix(in srgb,var(--ac) 26%,#1e293b);color:#fff;
+  border:1px solid var(--ac);border-radius:8px;padding:.4rem 1rem;cursor:pointer;font-weight:600}
+.pg table{border-collapse:collapse;margin:.6rem 0}
+.pg th,.pg td{border:1px solid var(--line);padding:.35rem .7rem;text-align:left}
+.pg th{background:#16203a}
+.pg .panel{margin:1rem 0}
+.pg .foot{margin-top:2rem;border-top:1px solid var(--line);padding-top:.8rem}
+/* trang chủ — grid endpoint + CTA */
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:.55rem;margin:1rem 0}
+a.hep{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:.55rem .8rem;font-size:.83rem;color:var(--txt);text-decoration:none;
+  transition:transform .13s,border-color .13s;animation:cardIn .35s both}
+a.hep:hover{transform:translateY(-1px);border-color:var(--ac)}
+a.hep code{color:var(--ac);font-weight:700}
+a.hep small,.hep2 small{color:var(--dim)}
+.hep2{display:block;background:var(--card);border:1px dashed var(--line);border-radius:10px;
+  padding:.55rem .8rem;font-size:.83rem;color:var(--dim);animation:cardIn .35s both}
+.hep2 .hm{color:#fcd34d;font-size:.7rem;font-weight:700;border:1px solid #92400e;
+  border-radius:6px;padding:0 6px;margin-right:.3rem;background:#422006}
+.cta{display:flex;gap:.7rem;flex-wrap:wrap;margin:1.1rem 0}
+.cta a{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;border-radius:10px;
+  font-weight:700;text-decoration:none;font-size:.92rem;transition:transform .13s,box-shadow .13s}
+.cta a:hover{transform:translateY(-2px)}
+.cta .r{background:linear-gradient(90deg,rgba(239,68,68,.28),rgba(249,115,22,.18));border:1px solid #ef4444;color:#fca5a5}
+.cta .b{background:linear-gradient(90deg,rgba(34,211,238,.22),rgba(14,165,233,.14));border:1px solid #22d3ee;color:#a5f3fc}
 `;
 
-const NAV = (mode, active) => `
+export const NAV = (mode, active) => `
 <nav class="topnav">
   <span class="brand">⚔ Sec<em>Lab</em> Console</span>
-  <a class="navtab" href="/">🏠 Trang chủ</a>
+  <a class="navtab ${active === 'home' ? 'on' : ''}" href="/">🏠 Trang chủ</a>
   <a class="navtab ${active === 'red' ? 'on' : ''}" href="/lab">🔴 Red Team</a>
   <a class="navtab ${active === 'blue' ? 'on' : ''}" href="/blue">🔵 Blue Team</a>
   <a class="navtab" href="https://jasontm17.github.io/Security_Lab_Study/" target="_blank" rel="noopener">📚 SecHub</a>

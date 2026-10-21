@@ -71,6 +71,16 @@ theo [Semantic Versioning](https://semver.org/lang/vi/).
   flags — toggle đóng/mở), stat `⚠ nghi ngờ` trên hero, alert cards link
   tới đúng defense card qua anchor `#def-lab-xx` (map `DETECT2LAB` inject
   vào `dash-blue.js`), defense card highlight khi được nhảy tới.
+- **Trang chủ `/` và mọi trang lab** (`/login`, `/guestbook`, `/search`…)
+  chuyển sang console theme chung: `page()` giờ dùng `/_lab/dash.css` +
+  NAV bar + hero (trước đó inline `<style>` bị CSP hardened chặn → trang
+  không style). Trang chủ có CTA Red/Blue + grid endpoint click-được
+  (thẻ POST có badge), favicon ⚔.
+- **Cả defense card trên `/blue` đều bấm được** — click thân card (hoặc
+  Enter khi focus, `role="link"`) nhảy `/lab#lab-xx` bên Red Team.
+- `prefers-reduced-motion`: tắt toàn bộ animation/transition + smooth
+  scroll khi người dùng yêu cầu giảm chuyển động.
+- Demo GIF `docs/images/demo-redblue.gif` trong README.
 
 ### Test
 
@@ -82,7 +92,7 @@ theo [Semantic Versioning](https://semver.org/lang/vi/).
   **151 test**
   (trước 140).
 - `tests/e2e.mjs` +3 check nhóm I: `/blue` render + asset JS, `/_lab/alerts`
-  phát hiện từ traffic e2e, status trong log → **64 check** (trước 61).
+  phát hiện từ traffic e2e, status trong log → **65 check** (trước 61).
 
 ## [1.4.0] — 2026-10
 

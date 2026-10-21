@@ -24,7 +24,7 @@ kiến thức bằng số liệu — không chỉ nghe lý thuyết.
 node --version          # cần >= 22.5 (có node:sqlite); thấp hơn vẫn chạy — lab rơi về fallback in-memory
 npm run doctor          # kiểm tra Node, sqlite, port 3000/3001 còn rảnh
 npm test                # 151/151
-npm run e2e             # 64/64
+npm run e2e             # 65/65
 ```
 
 Nếu `doctor` báo port bận: đổi port bằng `-- --port 3002` hoặc tắt process đang

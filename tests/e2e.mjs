@@ -519,6 +519,15 @@ group('I. Dashboard /lab — catalog chọn bài');
     assert.ok(done.length > 5);
     assert.ok(done.every((e) => e.status >= 200 && e.status < 600));
   });
+
+  await check('I6. Trang chủ + trang lab dùng CSS ngoài — không inline <style>/<script> (CSP-safe)', async () => {
+    for (const [base, p] of [[vuln, '/'], [hard, '/'], [hard, '/guestbook'], [hard, '/login']]) {
+      const h = await (await get(base, p)).text();
+      assert.ok(h.includes('/_lab/dash.css'), `${p} phải link dash.css`);
+      assert.ok(!h.includes('<style>'), `${p} còn inline <style> — CSP hardened sẽ chặn`);
+      assert.ok(!/style="/.test(h), `${p} còn style= attribute`);
+    }
+  });
 }
 
 // ===========================================================================
