@@ -4,6 +4,39 @@ Mọi thay đổi đáng chú ý của SecLab được ghi lại tại đây.
 Format theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản
 theo [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [1.5.0] — 2026-10
+
+### Thêm
+
+- **🔵 Blue Team SOC console** — `GET /blue`: dashboard phòng thủ tách biệt với
+  Red Team. Live request feed tự làm mới 2.5s (tô đỏ hàng khớp pattern nghi
+  ngờ, flag pill theo loại tấn công), thẻ alert từ engine `detect.js` chạy
+  trên request log thật, bảng 16 detection rule kèm giới hạn (access log không
+  thấy request body → proto pollution cần telemetry tầng app), và 20 thẻ phòng
+  thủ theo từng bài LAB — khép kín luồng học **tấn công → quan sát → so sánh
+  hardened**. Có nút tạm dừng feed.
+- **`GET /_lab/alerts`** — endpoint JSON chạy `analyzeLog(reqLog)` trên log
+  sống, trả `{ mode, findings, rules }` cho SOC console và công cụ ngoài.
+- **Request log ghi `status`** — mỗi entry trong `/_lab/log` cập nhật HTTP
+  status qua `res.on('finish')` (0 = đang xử lý), để Blue Team nhìn được oracle
+  200/404 của blind SQLi và tỉ lệ lỗi.
+- **Nav bar chung** cho `/`, `/lab`, `/blue` với badge mode VULN/HARDENED.
+
+### Sửa
+
+- Blue feed: timestamp `Date.now()` (numeric epoch) làm client crash vì gọi
+  `.slice` trên số — formatter mới xử lý cả epoch số lẫn chuỗi ISO.
+- `/lab` redesign sang theme Red Team (đỏ/cam, nhóm theo màu kỹ năng) tách
+  biệt với Blue Team (cyan); giữ nguyên lọc, tiến độ, CTF panel.
+
+### Test
+
+- `tests/dashboard.test.js` +5: route `/blue`, `/_lab/alerts` bắt SQLi +
+  admin-probe từ traffic thật, status recording, timestamp helper, coverage
+  `LAB_DETECT` → **145 test** (trước 140).
+- `tests/e2e.mjs` +3 check nhóm I: `/blue` render, `/_lab/alerts` phát hiện
+  từ traffic e2e, status trong log → **64 check** (trước 61).
+
 ## [1.4.0] — 2026-10
 
 ### Thêm

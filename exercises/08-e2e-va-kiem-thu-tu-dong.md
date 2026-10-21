@@ -1,7 +1,7 @@
 # Bài 08 — E2E và kiểm thử tự động: đọc PASS/FAIL như một kỹ sư
 
 > Mục tiêu: chạy thành thạo 2 tầng kiểm thử tự động của SecLab — `npm test`
-> (unit/integration) và `npm run e2e` (61 check HTTP tự khởi động server) —
+> (unit/integration) và `npm run e2e` (64 check HTTP tự khởi động server) —
 > và hiểu kỹ thuật **vuln/hardened đối chứng**: cùng một tính năng được khẳng
 > định CẢ HAI phía (vuln phải còn lỗi, hardened phải đã vá). Ma trận check đầy
 > đủ nằm ở [docs/07-e2e-checklist.md](../docs/07-e2e-checklist.md).
@@ -23,13 +23,13 @@ npm test
 1. Đọc 3 dòng tổng kết ở cuối (dạng TAP, tiền tố `ℹ`):
 
    ```
-   ℹ tests 140
-   ℹ pass 140
+   ℹ tests 145
+   ℹ pass 145
    ℹ fail 0
    ```
 
    Kỳ vọng: **fail 0**. Con số `tests` có thể tăng khi project thêm test mới
-   (tại thời điểm cập nhật tài liệu là 140) — điều bắt buộc là `fail 0`.
+   (tại thời điểm cập nhật tài liệu là 145) — điều bắt buộc là `fail 0`.
 2. Chạy đúng MỘT file để xem runner cô lập thế nào:
 
    ```bash
@@ -64,7 +64,7 @@ npm run e2e
 1. Đọc dòng tổng kết:
 
    ```
-   ═══ E2E TỔNG KẾT: 61/61 PASS, 0 FAIL ═══
+   ═══ E2E TỔNG KẾT: 64/64 PASS, 0 FAIL ═══
    ```
 
    Mỗi check nằm trong 9 nhóm (ký hiệu đầu tên check): **A** hub (8) ·
@@ -72,7 +72,7 @@ npm run e2e
    **D** rate limit (2) · **F** CTF + log blue-team (8) ·
    **G** lỗ hổng LAB-09..15 đối chứng (8) · **H** lỗ hổng LAB-16..20 đối chứng (5) ·
    **I** dashboard /lab (2) · **E** dọn dẹp (1).
-   Đếm lại cho khớp 61.
+   Đếm lại cho khớp 64.
 2. Câu hỏi mấu chốt: vì sao **C1. SQLi boolean-based → lộ TOÀN BỘ người dùng**
    lại là check PASS? Vì e2e khẳng định lab vuln **còn** lộ dữ liệu — nếu ai đó
    "vá nhầm" bản vuln, C1 sẽ FAIL và nhắc người ta khôi phục giá trị giảng dạy.
@@ -84,7 +84,7 @@ npm run e2e
 4. Xem exit code — CI (`.github/workflows/ci.yml`) dựa vào nó:
 
    ```bash
-   npm run e2e ; echo $?      # Git Bash — 0 khi 61/61 PASS
+   npm run e2e ; echo $?      # Git Bash — 0 khi 64/64 PASS
    ```
 
    `tests/e2e.mjs` gọi `process.exit(1)` nếu có bất kỳ check FAIL nào, nên CI
@@ -94,7 +94,7 @@ npm run e2e
    cái gì và trình duyệt thật bổ sung gì.
 
 ✅ **Hoàn thành khi:** cả hai lệnh xanh (`npm test` fail 0 · `npm run e2e`
-61/61 PASS), giải thích được vì sao nhóm C "lỗ hổng phải tồn tại" cũng là PASS,
+64/64 PASS), giải thích được vì sao nhóm C "lỗ hổng phải tồn tại" cũng là PASS,
 và nêu được 1 cặp check B/C đối chứng bằng đúng tên.
 
 ## Câu hỏi tự vấn (trả lời được là đã hiểu)
@@ -103,7 +103,7 @@ và nêu được 1 cặp check B/C đối chứng bằng đúng tên.
    `node src/cli.js recon` thì cần?
 2. Nếu `npm test` báo `fail 5` ngay sau khi bạn `git pull` — bạn kết luận gì
    trước tiên: tool hỏng, lab hỏng, hay có thay đổi code chưa chạy kèm test?
-3. Con số 140 test và 61 check E2E đo hai tầng khác nhau ở điểm nào (đơn vị đo,
+3. Con số 145 test và 64 check E2E đo hai tầng khác nhau ở điểm nào (đơn vị đo,
    thứ cần dựng, thời gian chạy)?
 4. Bạn vừa thêm 1 route mới vào lab hardened. Phải thêm check nhóm nào vào
    `tests/e2e.mjs` để route đó được bảo vệ bởi đối chứng vuln/hardened?

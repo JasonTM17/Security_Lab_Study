@@ -1,12 +1,12 @@
 # 07 · Ma trận E2E tự kiểm thử — kết quả đã chạy thật
 
 > Hai tầng kiểm thử bổ trợ nhau:
-> **(1) `npm run e2e`** — 61 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
+> **(1) `npm run e2e`** — 64 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
 > **(2) Browser E2E qua browser-use** — chính trình duyệt thật (webview Chromium) thao tác như người dùng: click, điền form, cookie jar thật, chụp màn hình.
 
-Kết quả lần chạy gần nhất (2026-10-21): **E2E 61/61 PASS · Browser E2E 30/30 PASS**.
+Kết quả lần chạy gần nhất (2026-10-21): **E2E 64/64 PASS · Browser E2E 30/30 PASS**.
 
-## Tầng 1 — `npm run e2e` (61 check, tự chứa)
+## Tầng 1 — `npm run e2e` (64 check, tự chứa)
 
 | Nhóm | Số check | Phủ những gì |
 |---|---|---|
@@ -17,6 +17,7 @@ Kết quả lần chạy gần nhất (2026-10-21): **E2E 61/61 PASS · Browser 
 | F. CTF + log blue-team | 8 | 10 thử thách/265 điểm; cờ sqli trong dump; flag-ctf.txt; admin flag; idor apiKey; verify đúng/sai; /_lab/log entry; hardened tắt CTF |
 | G. Lỗ hổng mở rộng LAB-09..15 (đối chứng) | 8 | CMDI echo marker; JWT alg=none + weak secret; open redirect 302 vs 400; upload .html text/html vs 415; XXE resolve vs 400; stored XSS raw vs escaped; CSRF không token 200 vs 403 |
 | H. Lỗ hổng nâng cao LAB-16..20 (đối chứng) | 5 | proto pollution nhiễm prototype vs lọc sạch; mass assign role=admin vs user; blind SQLi oracle 200/404 vs 404; reset md5 đoán được vs random+one-time; DOM XSS innerHTML vs textContent |
+| I. Dashboard Red/Blue Team | 5 | /lab Red Team đủ 20 thẻ + CTF panel; /lab hardened banner đối chứng; /blue SOC console + feed + rules; /_lab/alerts phát hiện tấn công từ traffic thật; /_lab/log ghi status sau response |
 | E. Dọn dẹp | 1 | hub server đóng sạch |
 
 Ghi chú kỹ thuật: check A7 phải dùng **raw HTTP request** (`node:http`, không chuẩn hoá
@@ -56,8 +57,8 @@ Ghi chú kỹ thuật: check A7 phải dùng **raw HTTP request** (`node:http`, 
 ## Cách chạy lại
 
 ```bash
-npm test        # 140 unit/integration
-npm run e2e     # 61 E2E HTTP (tự khởi động server, port tạm)
+npm test        # 145 unit/integration
+npm run e2e     # 64 E2E HTTP (tự khởi động server, port tạm)
 node src/cli.js hub --port 4000   # rồi mở http://127.0.0.1:4000 xem hub
 node src/cli.js serve --hardened --port 3001  # lab để test tay trên trình duyệt
 ```

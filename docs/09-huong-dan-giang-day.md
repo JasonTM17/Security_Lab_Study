@@ -23,17 +23,20 @@ kiến thức bằng số liệu — không chỉ nghe lý thuyết.
 ```bash
 node --version          # cần >= 22.5 (có node:sqlite); thấp hơn vẫn chạy — lab rơi về fallback in-memory
 npm run doctor          # kiểm tra Node, sqlite, port 3000/3001 còn rảnh
-npm test                # 140/140
-npm run e2e             # 61/61
+npm test                # 145/145
+npm run e2e             # 64/64
 ```
 
 Nếu `doctor` báo port bận: đổi port bằng `-- --port 3002` hoặc tắt process đang
 chiếm (`netstat -ano | findstr :3000` trên Windows).
 
-> 💡 **Mẹo lên lớp:** mở `http://127.0.0.1:3000/lab` — dashboard chọn bài hiển thị
-> đủ 20 lỗ hổng theo nhóm/độ khó, có payload gợi ý và nút nộp cờ CTF. Chiếu trang
-> này khi giới thiệu giáo trình; học viên tự tick "Đã xong" để theo tiến độ.
-> Bản tĩnh (không cần lab) nằm ở chuyên mục 10 của
+> 💡 **Mẹo lên lớp:** mở `http://127.0.0.1:3000/lab` — 🔴 **Red Team dashboard**
+> hiển thị đủ 20 lỗ hổng theo nhóm/độ khó, có payload gợi ý và nút nộp cờ CTF.
+> Chiếu trang này khi giới thiệu giáo trình; học viên tự tick "Đã xong" để theo
+> tiến độ. Sau mỗi pha khai thác, mở `http://127.0.0.1:3000/blue` — 🔵 **SOC
+> console** — để cả lớp thấy request của mình hiện trong live feed với flag nghi
+> ngờ đỏ, alert cards từ `detect.js`, và 16 detection rule: "attacker vừa làm gì,
+> defender nhìn thấy gì". Bản tĩnh (không cần lab) nằm ở chuyên mục 10 của
 > https://jasontm17.github.io/Security_Lab_Study/.
 
 ## 3. Briefing an toàn — đọc to trước lớp (bắt buộc)

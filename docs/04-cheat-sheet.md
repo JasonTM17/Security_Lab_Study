@@ -10,8 +10,8 @@ npm run doctor                              # kiểm tra môi trường
 npm run serve                               # lab VULN    → http://127.0.0.1:3000
 npm run serve -- --port 3001                # lab VULN    ở port khác
 npm run serve:hardened                      # lab HARDENED → http://127.0.0.1:3000
-npm test                                    # 140 test (guard, ratelimiter, app, jwt, scraper, flowload, lab16-20, unit-gaps…)
-npm run e2e                                 # 61 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
+npm test                                    # 145 test (guard, ratelimiter, app, jwt, scraper, flowload, lab16-20, unit-gaps…)
+npm run e2e                                 # 64 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
 
 node src/cli.js labs                        # danh sách bài thực hành
 node src/cli.js hub                         # Hub học SecHub → http://127.0.0.1:4000
@@ -60,7 +60,10 @@ node src/cli.js scan http://192.168.1.50:3000 --i-own-this-target
 | `GET /dom` | **DOM XSS** — `location.hash` → `innerHTML` | `textContent` |
 | `GET /slow?ms=` | endpoint chậm 3s (mồi cho DoS demo) | vẫn chậm, nhưng rate limit bảo vệ |
 | `GET /_lab/metrics` | bộ đếm request (dụng cụ học tập) | có |
-| `GET /_lab/log` | log request cho module `detect` | có |
+| `GET /_lab/log` | log request cho module `detect` (kèm `status` sau khi response xong) | có |
+| `GET /_lab/alerts` | phân tích log bằng `detect.js` → findings + rules (SOC feed cho `/blue`) | có |
+| `GET /lab` | 🔴 **Red Team dashboard** — chọn mục tiêu, payload, nộp cờ CTF | có (banner đối chứng) |
+| `GET /blue` | 🔵 **Blue Team SOC console** — live feed, alert cards, 16 rules, phòng thủ | có |
 | `GET /_lab/challenges` + `/_lab/verify` | CTF: 10 thử thách, 265 điểm | CTF tắt (đã vá) |
 | mọi 404/500 | phản chiếu URL / stack trace | trang lỗi chung chung |
 | headers & cookie | thiếu CSP/nosniff…, cookie không cờ | đầy đủ |
