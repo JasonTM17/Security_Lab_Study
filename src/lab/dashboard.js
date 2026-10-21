@@ -38,6 +38,11 @@ export const LAB_DETECT = {
 
 export const DIFFS = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
 
+// Reverse map rule-type → [labIds] — cho alert cards link tới defense card.
+const DETECT2LAB = {};
+for (const [labId, types] of Object.entries(LAB_DETECT))
+  for (const t of types) (DETECT2LAB[t] ||= []).push(labId);
+
 // eps: method + path (GET có thể click mở trên lab sống; POST minh hoạ bằng code)
 // payload: gợi ý khai thác để copy — vuln only, KHÔNG phải lời giải đầy đủ
 // hard: cách kiểm chứng bản hardened (:3001)
@@ -414,6 +419,32 @@ summary{cursor:pointer}
 .check{margin:0;font-size:.8rem;color:#86efac}
 .card footer{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#64748b;border-top:1px dashed var(--line);padding-top:.5rem}
 .done{cursor:pointer}
+/* banner hoàn thành 20/20 */
+.win{margin:.9rem 0;padding:1rem 1.2rem;border-radius:12px;border:1px solid #f59e0b;
+  background:linear-gradient(90deg,rgba(245,158,11,.16),rgba(74,222,128,.1));color:#fde68a;
+  animation:cardIn .4s both;box-shadow:0 0 24px -8px rgba(245,158,11,.45)}
+.win a{color:#fcd34d}
+/* onboarding toast */
+.toast{position:fixed;right:1.2rem;bottom:1.2rem;max-width:430px;z-index:50;
+  background:var(--card);border:1px solid var(--ac);border-radius:12px;padding:.85rem 1rem;
+  font-size:.86rem;color:var(--txt);box-shadow:0 8px 30px -8px rgba(0,0,0,.7);
+  animation:cardIn .45s both}
+.toast button{margin-top:.5rem;background:color-mix(in srgb,var(--ac) 28%,#1e293b);color:#fff;
+  border:1px solid var(--ac);border-radius:8px;padding:.3rem .9rem;cursor:pointer;font-weight:600}
+kbd{background:#1e293b;border:1px solid #334155;border-bottom-width:2px;border-radius:5px;
+  padding:0 6px;font-family:ui-monospace,monospace;font-size:.82em}
+.kbdhint{margin-top:-.2rem}
+/* feed detail panel + hàng đang mở */
+.feeddet{margin-top:.6rem;padding:.7rem .9rem;border:1px solid var(--ac);border-radius:10px;
+  background:#101a30;font-family:ui-monospace,Consolas,monospace;font-size:.8rem;line-height:1.7;
+  animation:cardIn .25s both;word-break:break-all}
+.feedtbl tbody tr{cursor:pointer}
+.feedtbl tbody tr.xp td{background:color-mix(in srgb,var(--ac) 14%,transparent)!important}
+/* alert → defense card link + bcard được nhảy tới */
+.alink{font-size:.8rem;margin:.3rem 0 0}
+.alink a{color:var(--ac);font-weight:700;margin-right:.4rem}
+.bcard:target{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac),0 0 22px -6px var(--ac)}
+.filters .ftoggle,.sub .ftoggle{margin-left:.3rem;padding:.2rem .6rem;font-size:.78rem;cursor:pointer}
 /* phản hồi bấm cho mọi nút */
 .fbtn:active,.chipbtn:active,.submit button:active,.cp:active,.ftoggle:active,.navtab:active{transform:scale(.94)}
 .filters button,.chip,.fbtn,.navtab{transition:all .15s}
@@ -567,11 +598,37 @@ function paint(){
   });
   $('#prog').style.width=(done.size/20*100)+'%';
   $('#progtxt').textContent=done.size+'/20 mục tiêu';
+  $('#win')?.classList.toggle('hide',done.size<20);
 }
 $$('[data-done]').forEach(cb=>cb.onchange=()=>{
   cb.checked?done.add(cb.dataset.done):done.delete(cb.dataset.done);
   localStorage.setItem(KEY,JSON.stringify([...done]));paint();
 });
+$('#resetbtn').onclick=()=>{if(done.size&&!confirm('Xoá tiến độ '+done.size+'/20 bài đã đánh dấu?'))return;
+  done.clear();localStorage.removeItem(KEY);paint();};
+$('#exportbtn').onclick=()=>{
+  const L=['# SecLab — Tiến độ của tôi','','_Xuất lúc '+new Date().toLocaleString('vi')+'_','',
+    '**'+done.size+'/20 mục tiêu hoàn thành · Điểm CTF: '+($('#score').textContent||'—')+'**','',
+    '| Bài | Mục tiêu | Trạng thái |','|---|---|---|'];
+  $$('.card').forEach(c=>{const id=c.querySelector('.labid').textContent;
+    const t=c.querySelector('h3').textContent;
+    L.push('| '+id+' | '+t+' | '+(done.has(id)?'✅ xong':'⬜ chưa')+' |');});
+  const a=document.createElement('a');const u=URL.createObjectURL(new Blob([L.join('\\n')],{type:'text/markdown'}));
+  a.href=u;a.download='seclab-tien-do.md';a.click();URL.revokeObjectURL(u);
+};
+function resetFilters(){setCat('all');st.diff=0;$$('[data-k=diff]').forEach(x=>x.classList.remove('on'));
+  st.ctf=false;$('#fctf').checked=false;st.q='';$('#fsearch').value='';apply();}
+$('#resetfbtn').onclick=resetFilters;
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,textarea'))return;
+  if(e.key==='/'){e.preventDefault();$('#fsearch').focus();}
+  if(e.key==='Escape'){resetFilters();$('#fsearch').blur();}
+});
+// onboarding toast — chỉ hiện lần đầu
+if(!localStorage.getItem('seclab-seen')){
+  $('#toast').classList.remove('hide');
+  $('#toastx').onclick=()=>{$('#toast').classList.add('hide');localStorage.setItem('seclab-seen','1');};
+}
 paint();
 async function loadCtf(){
   try{
@@ -596,7 +653,8 @@ $('#ctfsend').onclick=async()=>{
 
 export const BLUE_JS = `
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-let paused=false;
+const L2R=${JSON.stringify(DETECT2LAB)}; // rule-type → [labIds] — alert link tới defense card
+let paused=false,onlySus=false,lastLog=[],detIdx=-1;
 function flagsOf(e){
   const f=[];
   let dp=e.path||'';try{dp=decodeURIComponent(dp);}catch(err){dp='';}
@@ -622,16 +680,37 @@ async function feed(){
   try{
     const j=await(await fetch('/_lab/log')).json();
     const log=(j.log||[]).slice(-80).reverse();
+    lastLog=log;detIdx=-1;$('#feeddet')?.classList.add('hide');
     $('#reqcount').textContent=j.log?.length??0;
-    $('#feed').innerHTML=log.map(e=>{
+    $('#suscount').textContent=log.filter(e=>flagsOf(e).length).length;
+    const rows=onlySus?log.filter(e=>flagsOf(e).length):log;
+    $('#feed').innerHTML=rows.map(e=>{
       const fl=flagsOf(e);
+      const i=log.indexOf(e);
       const t=typeof e.t==='number'?new Date(e.t).toTimeString().slice(0,8):String(e.t||'—').slice(11,19);
-      return '<tr class="'+(fl.length?'sus':'')+'"><td>'+escH(t)+'</td><td>'+escH(e.method||'GET')+'</td>'+
+      return '<tr data-i="'+i+'" class="'+(fl.length?'sus':'')+'"><td>'+escH(t)+'</td><td>'+escH(e.method||'GET')+'</td>'+
         '<td title="'+escH(e.path)+'">'+escH((e.path||'').slice(0,72))+'</td><td>'+escH(e.ip||'—')+'</td>'+
         '<td>'+(e.status?('<span class="'+(e.status<300?'sev-ok':e.status<400?'sev-ok':e.status<500?'sev-med':'sev-high')+'">'+e.status+'</span>'):'—')+'</td><td>'+fl.map(x=>'<span class="pill high">'+x+'</span>').join(' ')+'</td></tr>';
-    }).join('')||'<tr><td colspan="6" class="sub">Chưa có traffic — hãy tấn công lab rồi quay lại.</td></tr>';
+    }).join('')||'<tr><td colspan="6" class="sub">'+(onlySus?'Không có request nghi ngờ nào trong 80 gần nhất.':'Chưa có traffic — hãy tấn công lab rồi quay lại.')+'</td></tr>';
   }catch(e){/* lab chết thì giữ nguyên khung */}
 }
+// bấm hàng feed → panel chi tiết request (giữ cả khi feed refresh: dùng lastLog + index)
+$('#feed').onclick=ev=>{
+  const tr=ev.target.closest('tr[data-i]');if(!tr)return;
+  const i=+tr.dataset.i,det=$('#feeddet');
+  if(detIdx===i&&!det.classList.contains('hide')){det.classList.add('hide');detIdx=-1;return;}
+  detIdx=i;const e=lastLog[i];if(!e)return;
+  const fl=flagsOf(e);
+  let dp='';try{dp=decodeURIComponent(e.path||'');}catch(err){}
+  det.innerHTML='<b>'+escH(e.method||'GET')+'</b> <code>'+escH(e.path||'')+'</code>'+
+    (dp&&dp!==e.path?'<br>decoded: <code>'+escH(dp)+'</code>':'')+
+    '<br>status <b>'+(e.status||'đang xử lý')+'</b> · ip <code>'+escH(e.ip||'—')+'</code>'+
+    '<br>ua: '+escH(e.ua||'—')+
+    (fl.length?'<br>flags: '+fl.map(x=>'<span class="pill high">'+x+'</span>').join(' '):'');
+  det.classList.remove('hide');
+  $$('#feed tr').forEach(r=>r.classList.toggle('xp',r===tr));
+};
+$('#fsus').onchange=e=>{onlySus=e.target.checked;const p=paused;paused=false;feed();paused=p;};
 async function alerts(){
   if(paused)return;
   try{
@@ -641,6 +720,7 @@ async function alerts(){
       '<div class="alert sev-'+f.severity+'"><h4><span class="pill '+f.severity+'">'+f.severity.toUpperCase()+'</span> '+
       escH(f.label)+' <span class="muted">×'+f.count+'</span></h4>'+
       (f.samples||[]).map(s=>'<div class="samp">› '+escH(s)+'</div>').join('')+
+      ((L2R[f.type]||[]).length?'<p class="def alink">Xem vá + bài lab liên quan: '+(L2R[f.type]).map(id=>'<a href="#def-'+id.toLowerCase()+'">'+id+'</a>').join(' ')+'</p>':'')+
       '<p class="def">🛡 '+escH(f.defense)+'</p></div>').join('')
       ||'<p class="sub">Chưa phát hiện tấn công nào — log sạch.</p>';
   }catch(e){}
@@ -694,7 +774,13 @@ ${NAV(mode, 'red')}
 </div>
 ${hardened ? '<p class="warn">⚠ Bạn đang ở bản <b>HARDENED</b> — các lỗ hổng đã vá. Payload gợi ý phải BỊ CHẶN. Khai thác thật hãy mở <a href="http://127.0.0.1:3000/lab">bản vuln :3000</a>.</p>' : ''}
 <div class="progress"><div id="prog"></div></div>
-<p class="sub">Tiến độ: <b id="progtxt">0/20 mục tiêu</b> · đang hiển thị <b id="count">20</b></p>
+<p class="sub">Tiến độ: <b id="progtxt">0/20 mục tiêu</b> · đang hiển thị <b id="count">20</b>
+  <button class="ftoggle" id="exportbtn" title="Tải file markdown ghi tiến độ + điểm CTF">⇩ xuất .md</button>
+  <button class="ftoggle" id="resetbtn" title="Xoá toàn bộ dấu tick Đã xong">↺ reset tiến độ</button>
+  <button class="ftoggle" id="resetfbtn" title="Xoá mọi bộ lọc (Esc)">⌫ reset filter</button>
+</p>
+<div id="win" class="win hide">🎓 <b>Hoàn thành toàn bộ 20 mục tiêu!</b> Giờ hãy qua <a href="/blue">🔵 Blue Team</a>
+  xem mình để lại dấu vết gì — và thử lại mọi payload trên bản <a href="http://127.0.0.1:3001/lab">hardened :3001</a>.</div>
 <div class="filters">
   ${catBtns}
   <span class="sep">|</span>
@@ -702,6 +788,7 @@ ${hardened ? '<p class="warn">⚠ Bạn đang ở bản <b>HARDENED</b> — các
   <label class="ftoggle"><input type="checkbox" id="fctf"> chỉ CTF</label>
   <input type="search" id="fsearch" placeholder="🔍 tìm theo tên / CWE / endpoint…">
 </div>
+<p class="sub kbdhint">Phím tắt: <kbd>/</kbd> tìm kiếm · <kbd>Esc</kbd> reset filter</p>
 ${groups}
 <div class="panel" id="ctf">
   <h2>🏆 Nộp cờ CTF ngay tại đây</h2>
@@ -716,7 +803,11 @@ ${groups}
 </div>
 <p class="sub">📚 Giáo trình: <a href="https://jasontm17.github.io/Security_Lab_Study/" target="_blank" rel="noopener">SecHub Online</a> ·
 lời giải (SPOILER): <code>solutions/</code> trong repo · <a href="/blue">🔵 Blue Team console</a> · <a href="/_lab/metrics">/_lab/metrics</a></p>
-</div><script src="/_lab/dash-red.js"></script></body></html>`;
+</div>
+<div class="toast hide" id="toast"><b>💡 Bắt đầu nhanh:</b> bấm chip nhóm / sao trên card để lọc ·
+chip 🏆 CTF nhảy tới ô nộp cờ · phím <kbd>/</kbd> để tìm · tick "Đã xong" để ghi tiến độ.
+<button id="toastx">Đã hiểu</button></div>
+<script src="/_lab/dash-red.js"></script></body></html>`;
 }
 
 /** Blue Team — SOC console: live request feed + alerts + defense rules (GET /blue). */
@@ -736,7 +827,7 @@ export function renderBlueDashboard(mode, rules = []) {
     const watch = det.length
       ? det.map((t) => `<span class="brule">◈ ${esc(t)}</span>`).join('')
       : '<span class="bblind">⚠ telemetry mù — cần app-level logging</span>';
-    return `<div class="bcard c-${l.cat}">
+    return `<div class="bcard c-${l.cat}" id="def-${l.id.toLowerCase()}">
   <header><a class="bid" href="/lab#${l.id.toLowerCase()}" title="Mở bài này ở Red Team dashboard">${l.id}</a><span class="stars">${DIFF_STARS[l.diff - 1]}</span><span class="bcat">${esc(CATEGORIES[l.cat])}</span></header>
   <h4>${esc(l.title)}</h4>
   <p class="bharden"><b>Phòng thủ:</b> ${esc(l.hard)}</p>
@@ -757,6 +848,7 @@ ${NAV(mode, 'blue')}
   Feed request trực tiếp + alert từ engine <code>detect.js</code> + bộ luật phòng thủ cho từng bài.</p>
   <div class="stats">
     <span class="stat">📥 <b id="reqcount">—</b> request ghi nhận</span>
+    <span class="stat">⚠ <b id="suscount">—</b> nghi ngờ (80 gần nhất)</span>
     <span class="stat">🚨 <b id="alertcount">—</b> loại tấn công phát hiện</span>
     <span class="stat">📜 <b>${rules.length}</b> detection rule</span>
     <span class="stat">CLI: <code>node src/cli.js detect ${esc(`http://127.0.0.1:3000`)}</code></span>
@@ -764,12 +856,15 @@ ${NAV(mode, 'blue')}
 </div>
 ${hardened ? '<p class="warn">ℹ Bản <b>HARDENED</b> — hầu hết tấn công sẽ bị chặn (400/401/403/415) nhưng request vẫn được log. So sánh feed ở hai bản!</p>' : ''}
 <div class="panel">
-  <h2><span class="live" id="livedot"></span> Live request feed <button class="ftoggle fr" id="pausebtn">⏸ Tạm dừng</button></h2>
-  <p class="sub">80 request gần nhất · làm mới mỗi 2.5s · hàng đỏ = khớp pattern nghi ngờ</p>
+  <h2><span class="live" id="livedot"></span> Live request feed
+    <label class="ftoggle fr"><input type="checkbox" id="fsus"> chỉ nghi ngờ</label>
+    <button class="ftoggle fr" id="pausebtn">⏸ Tạm dừng</button></h2>
+  <p class="sub">80 request gần nhất · làm mới mỗi 2.5s · hàng đỏ = khớp pattern nghi ngờ · <b>bấm hàng để xem chi tiết</b></p>
   <div class="feedbox"><table class="feedtbl">
     <thead><tr><th>giờ</th><th>method</th><th>path</th><th>ip</th><th>status</th><th>flags</th></tr></thead>
     <tbody id="feed"><tr><td colspan="6" class="sub">Đang tải…</td></tr></tbody>
   </table></div>
+  <div id="feeddet" class="feeddet hide"></div>
 </div>
 <div class="panel">
   <h2>🚨 Alerts — engine phát hiện của lab</h2>

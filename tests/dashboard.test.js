@@ -45,6 +45,28 @@ test('filter nhóm toggle về "all" khi bấm lại (giống độ khó)', () =
   assert.ok(RED_JS.includes('st.diff===v?0:v'), 'setDiff toggle về 0');
 });
 
+test('red dashboard có đủ control: reset/export/phím tắt/banner/toast', () => {
+  const html = renderDashboard('vuln');
+  for (const id of ['exportbtn', 'resetbtn', 'resetfbtn', 'win', 'toast', 'toastx'])
+    assert.ok(html.includes(`id="${id}"`), `thiếu #${id}`);
+  assert.ok(RED_JS.includes('resetFilters'), 'thiếu resetFilters');
+  assert.ok(RED_JS.includes("key==='/'") && RED_JS.includes("'Escape'"), 'thiếu phím tắt');
+  assert.ok(RED_JS.includes('seclab-tien-do.md'), 'thiếu export .md');
+  assert.ok(RED_JS.includes('seclab-seen'), 'thiếu onboarding toast flag');
+  assert.ok(RED_JS.includes('done.size<20'), 'win banner phải hiện khi 20/20');
+});
+
+test('blue dashboard: lọc nghi ngờ + chi tiết request + alert→defense link', () => {
+  const html = renderBlueDashboard('vuln', []);
+  assert.ok(html.includes('id="fsus"'), 'thiếu checkbox chỉ nghi ngờ');
+  assert.ok(html.includes('id="feeddet"'), 'thiếu panel chi tiết request');
+  assert.ok(html.includes('id="suscount"'), 'thiếu stat nghi ngờ');
+  assert.equal((html.match(/id="def-lab-/g) || []).length, 20, 'thiếu anchor defense card');
+  assert.ok(BLUE_JS.includes('onlySus'), 'thiếu state lọc nghi ngờ');
+  assert.ok(BLUE_JS.includes('lastLog'), 'thiếu lastLog cho detail panel');
+  assert.ok(BLUE_JS.includes('"sqli":["LAB-01"]'), 'L2R map phải được inject');
+});
+
 test('dữ liệu LABS: 20 bài, id duy nhất, category hợp lệ', () => {
   assert.equal(LABS.length, 20);
   assert.equal(new Set(LABS.map((l) => l.id)).size, 20);
