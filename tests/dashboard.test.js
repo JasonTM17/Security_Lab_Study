@@ -29,6 +29,16 @@ test('GET /lab → 200, Red Team theme + đủ 20 thẻ bài', async () => {
   assert.ok(html.includes('LAB-01') && html.includes('LAB-20'));
 });
 
+test('card có đủ nút tương tác: filter chip, CTF jump, ex link, POST curl', () => {
+  const html = renderDashboard('vuln');
+  assert.equal((html.match(/data-setcat=/g) || []).length, 20);
+  assert.equal((html.match(/data-setdiff=/g) || []).length, 20);
+  assert.equal((html.match(/data-ctfgo=/g) || []).length, 10);
+  assert.equal((html.match(/class="ex"/g) || []).length, 20);
+  assert.ok(html.includes('github.com/JasonTM17/Security_Lab_Study/blob/main/exercises/'));
+  assert.ok(RED_JS.includes('dataset.post') && RED_JS.includes('data-setcat]') && RED_JS.includes('data-ctfgo]'));
+});
+
 test('dữ liệu LABS: 20 bài, id duy nhất, category hợp lệ', () => {
   assert.equal(LABS.length, 20);
   assert.equal(new Set(LABS.map((l) => l.id)).size, 20);

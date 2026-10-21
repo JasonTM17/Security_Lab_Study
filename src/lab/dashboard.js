@@ -294,7 +294,7 @@ function renderEndpoint(ep, interactive) {
   if (interactive && ep.m === 'GET') {
     return `<li><a href="${esc(ep.p)}" target="_blank" rel="noopener">${esc(mp)}</a>${ep.label ? ` — ${esc(ep.label)}` : ''}</li>`;
   }
-  return `<li><code>${esc(mp)}</code>${ep.label ? ` — ${esc(ep.label)}` : ''}</li>`;
+  return `<li><code>${esc(mp)}</code>${ep.label ? ` — ${esc(ep.label)}` : ''} <button class="cp cp-post" data-post="${esc(ep.p)}" data-m="${esc(ep.m)}" title="Copy lệnh curl">⧉</button></li>`;
 }
 
 function renderCard(lab, { interactive = true } = {}) {
@@ -303,14 +303,14 @@ function renderCard(lab, { interactive = true } = {}) {
     .map((p) => `<li><code>${esc(p)}</code> <button class="cp" data-cp="${esc(p)}" title="Sao chép">⧉</button></li>`)
     .join('');
   const ctf = lab.ctf
-    ? `<span class="chip ctf">🏆 CTF #${lab.ctf.id} · ${lab.ctf.pts}đ</span>`
+    ? `<button class="chip ctf chipbtn" data-ctfgo="${lab.ctf.id}" title="Nhảy tới ô nộp cờ CTF #${lab.ctf.id}">🏆 CTF #${lab.ctf.id} · ${lab.ctf.pts}đ</button>`
     : '';
   return `
 <article class="card c-${lab.cat}" data-cat="${lab.cat}" data-diff="${lab.diff}" data-ctf="${lab.ctf ? 1 : 0}" id="${lab.id.toLowerCase()}">
   <header>
     <span class="labid">${lab.id}</span>
-    <span class="stars" title="${DIFFS[lab.diff]}">${DIFF_STARS[lab.diff - 1]}</span>
-    <span class="chip cat">${esc(cat)}</span>
+    <button class="stars chipbtn" data-setdiff="${lab.diff}" title="Lọc theo độ khó ${DIFFS[lab.diff]}">${DIFF_STARS[lab.diff - 1]}</button>
+    <button class="chip cat chipbtn" data-setcat="${lab.cat}" title="Lọc nhóm ${esc(cat)}">${esc(cat)}</button>
     ${ctf}
   </header>
   <h3>${esc(lab.title)}</h3>
@@ -320,7 +320,7 @@ function renderCard(lab, { interactive = true } = {}) {
   <details class="hint"><summary>💡 Payload gợi ý (vuln)</summary><ul>${payloads}</ul></details>
   <p class="check">✅ Kiểm chứng hardened: ${esc(lab.hard)}</p>
   <footer>
-    <span class="ex">📖 ${esc(lab.ex)}</span>
+    <a class="ex" href="https://github.com/JasonTM17/Security_Lab_Study/blob/main/${esc(lab.ex)}" target="_blank" rel="noopener" title="Mở bài tập trên GitHub">📖 ${esc(lab.ex)}</a>
     <label class="done"><input type="checkbox" data-done="${lab.id}"> Đã xong</label>
   </footer>
 </article>`;
@@ -389,6 +389,13 @@ code{background:#1e293b;color:#e2e8f0;padding:1px 5px;border-radius:4px;font-siz
 .check{margin:0;font-size:.8rem;color:#86efac}
 .card footer{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#64748b;border-top:1px dashed var(--line);padding-top:.5rem}
 .done{cursor:pointer}
+/* chip bấm được — category / độ khó / CTF trên mỗi card */
+.chipbtn{background:none;border:1px solid transparent;font:inherit;padding:0;cursor:pointer}
+.chipbtn:hover{filter:brightness(1.35)}
+.stars.chipbtn{letter-spacing:1px}
+a.ex{color:inherit;text-decoration:none}
+a.ex:hover{color:var(--ac);text-decoration:underline}
+.cp-post{vertical-align:middle}
 /* ── panels ── */
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem;margin:1.2rem 0}
 .panel h2{margin-top:0;font-size:1.05rem}
@@ -443,7 +450,8 @@ body.blue{--ac:#22d3ee;--ac2:#0ea5e9}
 .bcard:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--cat) 55%,var(--line));
   box-shadow:0 8px 26px -10px color-mix(in srgb,var(--cat) 50%,transparent)}
 .bcard header{display:flex;align-items:center;gap:.45rem}
-.bcard .bid{font-weight:800;color:var(--cat);letter-spacing:.6px;font-size:.8rem}
+.bcard .bid{font-weight:800;color:var(--cat);letter-spacing:.6px;font-size:.8rem;text-decoration:none}
+.bcard .bid:hover{text-decoration:underline;filter:brightness(1.25)}
 .bcard .stars{color:#f59e0b;font-size:.72rem;letter-spacing:1px}
 .bcard .bcat{margin-left:auto;font-size:.66rem;font-weight:600;color:var(--cat);
   border:1px solid color-mix(in srgb,var(--cat) 45%,var(--line));border-radius:99px;padding:1px 8px;
@@ -491,19 +499,27 @@ function apply(){
   $$('.group').forEach(g=>{g.classList.toggle('hide',![...g.querySelectorAll('.card')].some(c=>!c.classList.contains('hide')))});
   $('#count').textContent=shown;
 }
-$$('.fbtn').forEach(b=>b.onclick=()=>{
-  if(b.dataset.k==='cat'){st.cat=b.dataset.v;$$('[data-k=cat]').forEach(x=>x.classList.toggle('on',x===b));}
-  else{st.diff=st.diff===+b.dataset.v?0:+b.dataset.v;$$('[data-k=diff]').forEach(x=>x.classList.toggle('on',x===b&&st.diff));}
-  apply();
-});
+function setCat(v){st.cat=v;$$('[data-k=cat]').forEach(x=>x.classList.toggle('on',x.dataset.v===v));apply();}
+function setDiff(v){st.diff=st.diff===v?0:v;$$('[data-k=diff]').forEach(x=>x.classList.toggle('on',+x.dataset.v===st.diff));apply();}
+$$('.fbtn').forEach(b=>b.onclick=()=>{b.dataset.k==='cat'?setCat(b.dataset.v):setDiff(+b.dataset.v);});
 $('#fctf').onchange=e=>{st.ctf=e.target.checked;apply();};
 $('#fsearch').oninput=e=>{st.q=e.target.value.toLowerCase();apply();};
-$$('.cp').forEach(b=>b.onclick=()=>{
+// chip trên card cũng điều khiển filter / nhảy tới panel CTF
+$$('[data-setcat]').forEach(b=>b.onclick=()=>setCat(b.dataset.setcat));
+$$('[data-setdiff]').forEach(b=>b.onclick=()=>setDiff(+b.dataset.setdiff));
+$$('[data-ctfgo]').forEach(b=>b.onclick=()=>{
+  document.getElementById('ctf').scrollIntoView({behavior:'smooth'});
+  $('#ctfid').value=b.dataset.ctfgo;$('#ctfflag').focus();
+});
+function copyText(txt,b){
   const ok=()=>{b.textContent='✓';setTimeout(()=>b.textContent='⧉',800);};
-  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(b.dataset.cp).then(ok).catch(()=>{fb();});}
+  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(txt).then(ok).catch(()=>{fb();});}
   else fb();
-  function fb(){const t=document.createElement('textarea');t.value=b.dataset.cp;t.style.position='fixed';t.style.opacity='0';
+  function fb(){const t=document.createElement('textarea');t.value=txt;t.style.position='fixed';t.style.opacity='0';
     document.body.appendChild(t);t.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(t);ok();}
+}
+$$('.cp').forEach(b=>b.onclick=()=>{
+  copyText(b.dataset.post?('curl -X '+b.dataset.m+' '+location.origin+b.dataset.post):b.dataset.cp,b);
 });
 const KEY='seclab-lab-done';
 const done=new Set(JSON.parse(localStorage.getItem(KEY)||'[]'));
@@ -684,7 +700,7 @@ export function renderBlueDashboard(mode, rules = []) {
       ? det.map((t) => `<span class="brule">◈ ${esc(t)}</span>`).join('')
       : '<span class="bblind">⚠ telemetry mù — cần app-level logging</span>';
     return `<div class="bcard c-${l.cat}">
-  <header><span class="bid">${l.id}</span><span class="stars">${DIFF_STARS[l.diff - 1]}</span><span class="bcat">${esc(CATEGORIES[l.cat])}</span></header>
+  <header><a class="bid" href="/lab#${l.id.toLowerCase()}" title="Mở bài này ở Red Team dashboard">${l.id}</a><span class="stars">${DIFF_STARS[l.diff - 1]}</span><span class="bcat">${esc(CATEGORIES[l.cat])}</span></header>
   <h4>${esc(l.title)}</h4>
   <p class="bharden"><b>Phòng thủ:</b> ${esc(l.hard)}</p>
   <footer>${watch}</footer>
