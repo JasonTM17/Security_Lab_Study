@@ -15,9 +15,9 @@
 
 | Checklist | Đáp án |
 |---|---|
-| Cả hai lệnh xanh | `npm test` → `fail 0` (134 test); `npm run e2e` → `59/59 PASS`. |
+| Cả hai lệnh xanh | `npm test` → `fail 0` (140 test); `npm run e2e` → `61/61 PASS`. |
 | Vì sao nhóm C "lỗ hổng phải tồn tại" cũng PASS | e2e khẳng định lab vuln *còn* lỗ hổng — nếu ai "vá nhầm" bản vuln, C1-C10 FAIL. Test bảo vệ giá trị giảng dạy, không chỉ bảo vệ code. |
-| 134 test vs 59 e2e khác nhau thế nào | Unit: hàm thuần + route, in-process, ~7s, cô lập; e2e: HTTP thật qua socket, tự khởi động 3 server port tạm, đo hành vi end-to-end — bắt lỗi wiring/middleware mà unit không thấy. |
+| 140 test vs 61 e2e khác nhau thế nào | Unit: hàm thuần + route, in-process, ~7s, cô lập; e2e: HTTP thật qua socket, tự khởi động 3 server port tạm, đo hành vi end-to-end — bắt lỗi wiring/middleware mà unit không thấy. |
 
 ---
 

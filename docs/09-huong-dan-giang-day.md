@@ -23,12 +23,18 @@ kiến thức bằng số liệu — không chỉ nghe lý thuyết.
 ```bash
 node --version          # cần >= 22.5 (có node:sqlite); thấp hơn vẫn chạy — lab rơi về fallback in-memory
 npm run doctor          # kiểm tra Node, sqlite, port 3000/3001 còn rảnh
-npm test                # 115/115
-npm run e2e             # 54/54
+npm test                # 140/140
+npm run e2e             # 61/61
 ```
 
 Nếu `doctor` báo port bận: đổi port bằng `-- --port 3002` hoặc tắt process đang
 chiếm (`netstat -ano | findstr :3000` trên Windows).
+
+> 💡 **Mẹo lên lớp:** mở `http://127.0.0.1:3000/lab` — dashboard chọn bài hiển thị
+> đủ 20 lỗ hổng theo nhóm/độ khó, có payload gợi ý và nút nộp cờ CTF. Chiếu trang
+> này khi giới thiệu giáo trình; học viên tự tick "Đã xong" để theo tiến độ.
+> Bản tĩnh (không cần lab) nằm ở chuyên mục 10 của
+> https://jasontm17.github.io/Security_Lab_Study/.
 
 ## 3. Briefing an toàn — đọc to trước lớp (bắt buộc)
 

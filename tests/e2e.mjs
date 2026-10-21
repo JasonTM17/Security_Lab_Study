@@ -80,8 +80,8 @@ group('A. Hub học tập — nội dung & an toàn tĩnh');
     assert.equal(res.status, 200);
     assert.match(html, /SecHub — Hub học An toàn thông tin/);
   });
-  await check('A2. Đủ 9 chuyên mục (section.topic ×9)', () => {
-    assert.equal((html.match(/<section class="topic"/g) || []).length, 9);
+  await check('A2. Đủ 10 chuyên mục (section.topic ×10, gồm catalog LAB tự sinh)', () => {
+    assert.equal((html.match(/<section class="topic"/g) || []).length, 10);
   });
   await check('A3. Mục lục KHÔNG bị nhân đôi (link #chuong-01 xuất hiện đúng 1 lần)', () => {
     assert.equal((html.match(/href="#chuong-01"/g) || []).length, 1);
@@ -475,6 +475,23 @@ group('H. Lỗ hổng nâng cao (LAB-16..20) — đối chứng vuln/hardened');
     const h = await (await get(hard, '/dom')).text();
     assert.match(h, /textContent/);
     assert.ok(!/innerHTML\s*=\s*decodeURIComponent/.test(h));
+  });
+}
+
+// ===========================================================================
+group('I. Dashboard /lab — catalog chọn bài');
+{
+  await check('I1. /lab vuln: 200, đủ 20 thẻ, có CTF panel', async () => {
+    const t = await (await get(vuln, '/lab')).text();
+    assert.match(t, /Chọn bài LAB/);
+    assert.equal((t.match(/data-cat=/g) || []).length, 20);
+    assert.ok(t.includes('ctfsend') && t.includes('/_lab/challenges'));
+  });
+
+  await check('I2. /lab hardened: 200 + banner đối chứng (không khuyến khích khai thác)', async () => {
+    const t = await (await get(hard, '/lab')).text();
+    assert.match(t, /LAB HARDENED/);
+    assert.match(t, /đối chứng/);
   });
 }
 

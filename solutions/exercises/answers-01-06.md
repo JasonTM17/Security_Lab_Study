@@ -9,7 +9,7 @@
 
 | Checklist | Đáp án / cách chấm |
 |---|---|
-| `npm test` xanh 134/134 | Output có `ℹ tests 134 · ℹ pass 134 · ℹ fail 0` |
+| `npm test` xanh 140/140 | Output có `ℹ tests 140 · ℹ pass 140 · ℹ fail 0` |
 | Hai lab song song 3000/3001 | `curl -sI :3000` 200 badge VULN; `:3001` badge HARDENED |
 | Vì sao `recon http://8.8.8.8` bị từ chối | `guard.js` assertAuthorizedTarget: chỉ loopback tự do; dải riêng cần `--i-own-this-target`; public chặn tuyệt đối — Điều 287 BLHS. |
 

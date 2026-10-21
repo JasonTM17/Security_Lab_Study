@@ -1,16 +1,16 @@
 # 07 · Ma trận E2E tự kiểm thử — kết quả đã chạy thật
 
 > Hai tầng kiểm thử bổ trợ nhau:
-> **(1) `npm run e2e`** — 59 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
+> **(1) `npm run e2e`** — 61 check HTTP tự động, tự khởi động 3 server trên port tạm, chạy được trong CI.
 > **(2) Browser E2E qua browser-use** — chính trình duyệt thật (webview Chromium) thao tác như người dùng: click, điền form, cookie jar thật, chụp màn hình.
 
-Kết quả lần chạy gần nhất (2026-10-21): **E2E 59/59 PASS · Browser E2E 30/30 PASS**.
+Kết quả lần chạy gần nhất (2026-10-21): **E2E 61/61 PASS · Browser E2E 30/30 PASS**.
 
-## Tầng 1 — `npm run e2e` (59 check, tự chứa)
+## Tầng 1 — `npm run e2e` (61 check, tự chứa)
 
 | Nhóm | Số check | Phủ những gì |
 |---|---|---|
-| A. Hub | 8 | 200 + tiêu đề; đủ 9 chuyên mục; mục lục KHÔNG nhân đôi; đủ "Điểm cần nhớ"; cảnh báo Điều 287; số liệu pháp lý đã kiểm chứng (không "12–15 năm", có "7–12 năm"); path traversal raw path → 403; 404 |
+| A. Hub | 8 | 200 + tiêu đề; đủ 10 chuyên mục (9 file + catalog LAB tự sinh); mục lục KHÔNG nhân đôi; đủ "Điểm cần nhớ"; cảnh báo Điều 287; số liệu pháp lý đã kiểm chứng (không "12–15 năm", có "7–12 năm"); path traversal raw path → 403; 404 |
 | B. Hardened — luồng hợp lệ | 17 | trang chủ; search 1 dòng; SQLi → 0 dòng; XSS escape; login đúng + cookie HttpOnly/SameSite; SQLi bypass → 401 không lộ CSDL; IDOR 401; /admin 403; user đọc của mình 200; bob đọc người khác 403; download hợp lệ 200; traversal 400; /files 403; /slow chờ thật; metrics; security headers; logout |
 | C. Vuln — lỗ hổng phải TỒN TẠI (đối chứng) | 10 | SQLi boolean lộ ≥4 email; error-based lộ CSDL; XSS phản chiếu nguyên văn; bypass login thành công; cookie thiếu HttpOnly/SameSite; IDOR 200; /admin 200; traversal lộ LAB_SECRET; /files listing; phiên hoạt động |
 | D. Rate limit (instance riêng) | 2 | burst 28 → có 429; 429 kèm Retry-After |
@@ -56,8 +56,8 @@ Ghi chú kỹ thuật: check A7 phải dùng **raw HTTP request** (`node:http`, 
 ## Cách chạy lại
 
 ```bash
-npm test        # 134 unit/integration
-npm run e2e     # 59 E2E HTTP (tự khởi động server, port tạm)
+npm test        # 140 unit/integration
+npm run e2e     # 61 E2E HTTP (tự khởi động server, port tạm)
 node src/cli.js hub --port 4000   # rồi mở http://127.0.0.1:4000 xem hub
 node src/cli.js serve --hardened --port 3001  # lab để test tay trên trình duyệt
 ```

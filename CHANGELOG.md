@@ -4,6 +4,32 @@ Mọi thay đổi đáng chú ý của SecLab được ghi lại tại đây.
 Format theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản
 theo [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [1.4.0] — 2026-10
+
+### Thêm
+
+- **Dashboard chọn bài LAB** — `GET /lab` trong lab app: catalog tương tác
+  đủ 20 lỗ hổng lấy từ một nguồn dữ liệu `LABS` (`src/lab/dashboard.js`):
+  lọc theo 6 nhóm kỹ năng (Injection/XSS/Truy cập & File/Xác thực & Phiên/
+  Cấu hình/Logic nâng cao), 3 mức độ khó, chỉ-CTF, tìm kiếm full-text;
+  mỗi thẻ gồm mục tiêu, endpoint GET click-mở được, payload gợi ý nút copy,
+  cách kiểm chứng bản hardened, file bài tập liên quan; checkbox "Đã xong"
+  lưu localStorage + thanh tiến độ; panel **nộp cờ CTF trực tiếp** gọi
+  `/_lab/challenges` + `/_lab/verify` — điểm cập nhật live. Bản hardened
+  hiện banner đối chứng (payload phải bị chặn).
+- **Chuyên mục hub mới "10 · Chọn bài LAB"** — `scripts/assemble-hub.js`
+  sinh catalog bảng từ cùng dữ liệu `LABS` → hub/GitHub Pages luôn đồng bộ
+  với lab, không duplícate tay.
+- `src/lab/html.js` — tách `esc()` dùng chung app.js ↔ dashboard.js.
+- `tests/dashboard.test.js` — 6 test (route, data integrity, CTF mapping,
+  exercise tồn tại, catalog) → **140/140**; e2e thêm nhóm I (2 check) →
+  **61/61**. Ảnh `docs/images/lab-dashboard.png` chụp thật bằng Playwright.
+
+### Sửa
+
+- Trang chủ lab + footer mọi trang thêm link 🧪 Dashboard; số liệu docs
+  đồng bộ 140 test/61 e2e/10 chuyên mục.
+
 ## [1.3.0] — 2026-10
 
 ### Thêm

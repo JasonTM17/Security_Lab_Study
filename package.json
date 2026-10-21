@@ -1,6 +1,6 @@
 {
   "name": "seclab",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "SecLab - Bộ công cụ học an toàn thông tin: lab web 15 lỗ hổng chủ đích (kèm bản đối chứng hardened), recon, quét lỗ hổng 14 probe, CTF 7 thử thách, mô phỏng DoS/load-test trên lab cục bộ và module phòng thủ. CHỈ dùng cho mục tiêu bạn sở hữu hoặc được phép.",
   "type": "module",
   "author": {

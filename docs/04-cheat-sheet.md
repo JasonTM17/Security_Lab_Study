@@ -10,8 +10,8 @@ npm run doctor                              # kiểm tra môi trường
 npm run serve                               # lab VULN    → http://127.0.0.1:3000
 npm run serve -- --port 3001                # lab VULN    ở port khác
 npm run serve:hardened                      # lab HARDENED → http://127.0.0.1:3000
-npm test                                    # 134 test (guard, ratelimiter, app, jwt, scraper, flowload, lab16-20, unit-gaps…)
-npm run e2e                                 # 59 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
+npm test                                    # 140 test (guard, ratelimiter, app, jwt, scraper, flowload, lab16-20, unit-gaps…)
+npm run e2e                                 # 61 check E2E HTTP — tự khởi động 3 server, đối chứng vuln/hardened
 
 node src/cli.js labs                        # danh sách bài thực hành
 node src/cli.js hub                         # Hub học SecHub → http://127.0.0.1:4000

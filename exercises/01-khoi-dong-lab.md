@@ -17,7 +17,7 @@ Kỳ vọng: Node ≥22 OK, `node:sqlite khả dụng`, port 3000 rảnh, có CI
 npm test
 ```
 
-Kỳ vọng: **134 pass, 0 fail** — bao gồm test chặn mục tiêu public (quan trọng nhất).
+Kỳ vọng: **140 pass, 0 fail** — bao gồm test chặn mục tiêu public (quan trọng nhất).
 
 ## 3. Khởi động lab (bản CỐ Ý DỄ TỔN THƯƠNG)
 
@@ -50,6 +50,6 @@ Kỳ vọng: **TỪ CHỐI** kèm giải thích pháp lý (Điều 287 BLHS 2015
 
 ## ✅ Hoàn thành khi
 
-- [ ] `npm test` xanh 134/134
+- [ ] `npm test` xanh 140/140
 - [ ] Hai lab chạy song song: 3000 (vuln) và 3001 (hardened)
 - [ ] Hiểu vì sao `recon http://8.8.8.8` bị từ chối
