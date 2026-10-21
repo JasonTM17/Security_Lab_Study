@@ -36,7 +36,8 @@ function usage() {
         Thu thập thông tin: headers, tech fingerprint, ports, robots.txt
 
   ${c.cyan('scan')}    <target> [--json]
-        Quét lỗ hổng: SQLi, XSS, IDOR, security headers, rate limit…
+        Quét lỗ hổng: SQLi (+ blind), XSS (reflected/stored/DOM), IDOR, CMDI, CSRF,
+        JWT, open redirect, upload, XXE, proto pollution, mass assignment…
         Báo cáo .md + .html luôn ghi vào thư mục reports/ của project
 
   ${c.cyan('loadtest')}  <target> [--rps 100] [--duration 10] [--concurrency N] [--path=slow]
@@ -61,8 +62,8 @@ function usage() {
         scanner từ log request, kèm BIỆN PHÁP PHÒNG THỦ tương ứng từng phát hiện
 
   ${c.cyan('challenge')} <target> [--submit=N --flag='FLAG{...}']
-        Chế độ CTF: 7 thử thách (SQLi/Traversal/IDOR/Admin/CmdInj/JWT/XXE), cờ sinh ngẫu nhiên
-        THEO PHIÊN lab — phải tự khai thác lỗ hổng để lấy cờ rồi nộp về server.
+        Chế độ CTF: 10 thử thách (SQLi/Traversal/IDOR/Admin/CmdInj/JWT/XXE/ProtoPoll/MassAssign/BlindSQLi),
+        cờ sinh ngẫu nhiên THEO PHIÊN lab — phải tự khai thác lỗ hổng để lấy cờ rồi nộp về server.
         Bản hardened từ chối nộp cờ: đã vá thì không còn đường lấy.
 
   ${c.cyan('codec')}   <op> <text>
@@ -388,8 +389,9 @@ async function main() {
           }
           if (r.ok) {
             console.log(`\n  ${c.green('✔ CHÍNH XÁC!')} Cờ thử thách #${submitId} được chấp nhận.`);
-            console.log(`  Điểm: ${c.bold(String(r.score))}/${r.total} · đã giải: ${r.solved.length}/7 thử thách`);
-            if (r.solved.length === 7) console.log(`  ${c.green('🏆 HOÀN THÀNH TOÀN BỘ CTF — bạn đã khai thác đủ 7 lớp lỗ hổng web!')}`);
+            const n = r.count || 10;
+            console.log(`  Điểm: ${c.bold(String(r.score))}/${r.total} · đã giải: ${r.solved.length}/${n} thử thách`);
+            if (r.solved.length === n) console.log(`  ${c.green('🏆 HOÀN THÀNH TOÀN BỘ CTF — bạn đã khai thác đủ ' + n + ' lớp lỗ hổng web!')}`);
             console.log('');
           } else {
             console.log(`\n  ${c.red('✖ Cờ chưa đúng')} cho thử thách #${submitId}. Dùng lệnh challenge (không có --submit) để xem gợi ý.\n`);
