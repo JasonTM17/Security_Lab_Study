@@ -92,6 +92,37 @@ const PATTERNS = [
     test: (p) => /\/api\/(token|profile)/i.test(p),
     defense: 'Log lượt phát hành/xác minh token; reject alg=none; khoá HMAC mạnh; alert khi một IP thử nhiều token khác nhau.',
   },
+  {
+    type: 'proto-pollution',
+    label: 'Prototype pollution (dấu hiệu gián tiếp)',
+    severity: 'medium',
+    testEntry: (e) => e.method === 'POST' && /\/api\/config/i.test(e.path),
+    // Access log KHÔNG thấy body — __proto__ nằm trong JSON body nên detect chỉ
+    // biết "có request POST config", không biết payload. Giới hạn thực của log.
+    defense:
+      'Access log không thấy body → cần app-level logging hoặc WAF đọc body để nhận __proto__; phòng thủ gốc: lọc key nguy hiểm khi merge (hardened).',
+  },
+  {
+    type: 'mass-assign',
+    label: 'Mass assignment — field trái phép trong request',
+    severity: 'high',
+    testEntry: (e) => e.method === 'POST' && /\/api\/register/i.test(e.path) && /[?&]role=/i.test(e.path),
+    defense: 'Whitelist field khi tạo entity; alert khi thấy field quyền (role/admin/is_staff) trong request đăng ký.',
+  },
+  {
+    type: 'blind-sqli',
+    label: 'Blind SQLi — thăm dò oracle boolean',
+    severity: 'high',
+    test: (p) => /\/track/i.test(p) && /('|%27)[^&]*(and|or|select|substr|glob|union)(\s|%20|%2f|$)/i.test(p),
+    defense: 'Parameterized query diệt oracle; alert khi endpoint "tra cứu" nhận input chứa cú pháp SQL/substr — đặc trưng rút dữ liệu từng ký tự.',
+  },
+  {
+    type: 'reset-probe',
+    label: 'Dò luồng reset mật khẩu',
+    severity: 'medium',
+    test: (p) => /\/api\/reset\//i.test(p),
+    defense: 'Token random ≥128-bit + one-time + expiry; alert khi nhiều reset-request cho nhiều user từ cùng IP (dò account takeover).',
+  },
 ];
 
 function hits(p) {
